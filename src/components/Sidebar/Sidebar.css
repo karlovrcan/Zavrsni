@@ -1,0 +1,9 @@
+.your_library {
+  flex-grow: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.your_library::-webkit-scrollbar {
+  width: 10px;
+  background-color: grey;
+}

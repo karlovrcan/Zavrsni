@@ -1,0 +1,32 @@
+.card {
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  background: var(--tertiary_bg);
+  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease-in;
+}
+
+.play_btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover .play_btn {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 1);
+}

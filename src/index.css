@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #000;
+  color: #fff;
+  scroll-behavior: smooth;
+  padding: 5px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent double scrollbars */
+  height: 100%;
+}
+
+:root {
+  --secondary_bg: #121212;
+  --tertiary_bg: #242424;
+}
+
+.secondary_bg {
+  background: var(--secondary_bg);
+}
+
+.tertiary_bg {
+  background: var(--tertiary_bg);
+}
