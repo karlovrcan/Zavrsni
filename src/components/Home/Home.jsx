@@ -19,12 +19,18 @@ const Home = () => {
             </div>
           </div>
           <div>
-            <button className="rounded-full mt-3 px-8 text-base py-2 text-white font-semibold">
+            <Link
+              to={"/login"}
+              className="rounded-full mt-3 px-8 text-base py-2 text-white font-semibold"
+            >
               Sign up
-            </button>
-            <button className="rounded-full text-black mt-3 px-6 text-base py-2 bg-white font-semibold">
+            </Link>
+            <Link
+              to={"/login"}
+              className="rounded-full text-black mt-3 px-6 text-base py-2 bg-white font-semibold"
+            >
               Log in
-            </button>
+            </Link>
           </div>
         </div>
       </div>
