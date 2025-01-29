@@ -2,6 +2,7 @@ import React from "react";
 import Layout from "../../Layout/Layout";
 import Card from "../Card/Card";
 import { FiSearch } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   return (
@@ -20,7 +21,7 @@ const Home = () => {
           </div>
           <div>
             <Link
-              to={"/login"}
+              to={"/signup"}
               className="rounded-full mt-3 px-8 text-base py-2 text-white font-semibold"
             >
               Sign up
