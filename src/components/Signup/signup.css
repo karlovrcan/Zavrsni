@@ -1,6 +1,24 @@
 body {
   background: linear-gradient(to bottom, rgb(41, 41, 41), #000);
   min-height: 100vh;
+  overflow: auto;
+}
+
+input[type="radio"] {
+  display: none;
+}
+
+input[type="radio"] + label {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background-color: #131213;
+  color: #fff;
+  cursor: pointer;
+}
+input[type="radio"]:checked + label {
+  background-color: green;
+  color: #131213;
 }
 
 .container {
