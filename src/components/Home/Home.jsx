@@ -4,6 +4,33 @@ import Card from "../Card/Card";
 import { FiSearch } from "react-icons/fi";
 import { Link } from "react-router-dom";
 
+const songs = [
+  {
+    id: Math.random * Date.now(),
+    title: "Oj Ugljane",
+    artist: "Karlo Vrcan",
+    mp3: new Audio("/mp3/Mashup.mp3"),
+  },
+  {
+    id: Math.random * Date.now(),
+    title: "Pizda",
+    artist: "Jakov Vrcan",
+    mp3: new Audio("/mp3/Mashup.mp3"),
+  },
+  {
+    id: Math.random * Date.now(),
+    title: "Boko",
+    artist: "Marko Vrcan",
+    mp3: new Audio("/mp3/Mashup.mp3"),
+  },
+  {
+    id: Math.random * Date.now(),
+    title: "Oje",
+    artist: "Marija Vrcan",
+    mp3: new Audio("/mp3/Mashup.mp3"),
+  },
+];
+
 const Home = () => {
   return (
     <Layout>
@@ -42,12 +69,9 @@ const Home = () => {
           <span className="text-xs hover:underline">Show all</span>
         </div>
         <div className="grid mt-2 gap-3 grid-cols-6">
-          <Card />
-          <Card />
-          <Card />
-          <Card />
-          <Card />
-          <Card />
+          {songs.map((song) => {
+            return <Card key={song.id} song={song} />;
+          })}
         </div>
         <div className="px-3 flex justify-between items-center  ">
           <span className="font-bold text-3xl hover:underline">Focus</span>
