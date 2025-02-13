@@ -10,19 +10,21 @@ const songs = [
     id: Math.random() * Date.now(),
     title: "Mr. Weatherman",
     artist: "Hank Williams Jr.",
-    mp3: new Audio("/assets/mp3/Hank Williams Jr. - Mr. Weatherman - 1982.mp3"),
+    mp3: new Audio(
+      "src/assets/mp3/Hank Williams Jr. - Mr. Weatherman - 1982.mp3"
+    ),
   },
   {
     id: Math.random() * Date.now(),
     title: "SEXY BATMAN",
     artist: "Idk",
-    mp3: new Audio("/assets/mp3/SEXY BATMAN 2 MUSIC CAR.mp3"),
+    mp3: new Audio("src/assets/mp3/SEXY BATMAN 2 MUSIC CAR.mp3"),
   },
   {
     id: Math.random() * Date.now(),
     title: "All my exes live in Texas",
     artist: "Another One",
-    mp3: new Audio("/assets/mp3/All My Ex's Live In Texas.mp3"),
+    mp3: new Audio("src/assets/mp3/All My Ex's Live In Texas.mp3"),
   },
 ];
 
@@ -30,14 +32,14 @@ const Home = () => {
   return (
     <Layout>
       <div className="sticky top-0 z-10 bg-black shadow-md pb-1 pt-1">
-        <div className="flex justify-end items-center space-x-4 pr-4 mb-4">
+        <div className="flex justify-end items-center space-x-4 pr-4 mb-1 ">
           <div className="flex-grow flex justify-center mt-2">
-            <div className="relative w-1/2">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white text-2xl" />
+            <div className="relative w-2/3">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white-400 text-2xl" />
               <input
                 type="text"
                 placeholder="What do you want to play?"
-                className="w-full p-3 px-11 text-black rounded-full tertiary_bg focus:outline-none font-semibold"
+                className="w-full p-3 px-11 text-black rounded-full text-white  tertiary_bg focus:outline-none font-normal"
               />
             </div>
           </div>

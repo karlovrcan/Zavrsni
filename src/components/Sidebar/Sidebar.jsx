@@ -23,12 +23,11 @@ const Sidebar = () => {
             <BiLibrary className="font-bold text-3xl" />
             <span className="text-lg font-semibold">Library</span>
           </div>
-          <button className="hover:bg-black/25 rounded-full p-2">
+          <button className="hover:bg-tertiary rounded-full p-2 transition-colors duration-200">
             <FaPlus className="font-bold text-xl" />
           </button>
         </div>
 
-        {/* Your Library */}
         <div className="your_library flex flex-col gap-4">
           <div className="tertiary_bg rounded-lg px-4 py-6">
             <p className="font-bold">Create your first playlist.</p>

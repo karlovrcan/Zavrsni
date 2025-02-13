@@ -1,15 +1,15 @@
 .card {
   position: relative;
-  overflow: hidden; /* Ensures child elements respect rounded corners */
-  border-radius: 0.5rem; /* Matches Tailwind's rounded-lg */
-  background: #121212; /* Optional: Adds contrast to the card */
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: #121212;
 }
 
 .card img {
-  width: 100%; /* Ensures the image fills the card */
+  width: 100%;
   height: auto;
-  border-radius: inherit; /* Inherits the parent's border-radius */
-  display: block; /* Removes any inline spacing */
+  border-radius: inherit;
+  display: block;
 }
 
 .card:hover {
@@ -37,6 +37,11 @@
 
 .card:hover .play_btn {
   opacity: 1;
-  transform: scale(1);
+  transform: scale(1.1);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 1);
+}
+
+.play_btn:active {
+  transform: scale(1.2) !important;
+  background-color: #17a747;
 }
