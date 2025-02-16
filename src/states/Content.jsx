@@ -3,7 +3,7 @@ import { createContext, useContext, useState } from "react";
 const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [currTime, setCurrTime] = useState("00:00");
-  const [durration, setDuration] = useState("00:00");
+  const [duration, setDuration] = useState("00:00");
   const [progress, setProgress] = useState(0);
   const resetEverything = () => {
     setProgress(0);
@@ -15,7 +15,7 @@ export const AppProvider = ({ children }) => {
       value={{
         currTime,
         setCurrTime,
-        durration,
+        duration,
         setDuration,
         progress,
         setProgress,

@@ -9,7 +9,13 @@ import {
   IoIosSkipForward,
 } from "react-icons/io";
 import { IoPauseCircleSharp, IoPlayCircleSharp } from "react-icons/io5";
-import { LuShuffle, LuRepeat2, LuVolume2 } from "react-icons/lu";
+import {
+  LuShuffle,
+  LuRepeat2,
+  LuVolume2,
+  LuVolume1,
+  LuVolume,
+} from "react-icons/lu";
 import { AiOutlinePlaySquare } from "react-icons/ai";
 import { HiOutlineQueueList } from "react-icons/hi2";
 import { TbArrowsDiagonal } from "react-icons/tb";
@@ -30,37 +36,42 @@ const SongBar = () => {
     setCurrTime,
     duration,
     setDuration,
+    songIdx,
+    setSongIdx,
   } = useGlobalContext();
 
   useEffect(() => {
-    console.log("🔄 useEffect triggered! MasterSong:", masterSong); // Debugging log
+    console.log("useEffect triggered! MasterSong:", masterSong); // Debugging log
     if (!masterSong || !masterSong.mp3) {
-      console.warn("🚨 No masterSong or mp3 found. Exiting useEffect.");
+      console.warn("No masterSong or mp3 found. Exiting useEffect.");
       return;
     }
-
     if (audioRef.current && audioRef.current !== masterSong.mp3) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-
+    console.log("Setting new audio source:", masterSong.mp3?.src);
     audioRef.current = masterSong.mp3;
-
-    // ✅ Wait for metadata to load before setting duration
-    audioRef.current.onloadedmetadata = () => {
-      console.log("✅ Metadata Loaded! Duration:", audioRef.current.duration);
-
-      setTimeout(() => {
-        setDuration(audioRef.current.duration || 0);
-        console.log("📏 Updated Duration State:", audioRef.current.duration);
-      }, 100); // Delay state update to ensure React processes it
-    };
+    if (audioRef.current) {
+      audioRef.current.load();
+      audioRef.current.onloadedmetadata = () => {
+        console.log("Metadata Loaded! Duration:", audioRef.current.duration);
+        setTimeout(() => {
+          setDuration(audioRef.current.duration || 0);
+          console.log("Updated Duration State:", audioRef.current.duration);
+        }, 100);
+      };
+    } else {
+      console.warn("audioRef.current is null, cannot set onloadedmetadata");
+    }
 
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
         if (!masterSong.mp3) return;
         setProgress(
-          (masterSong.mp3.currentTime / masterSong.mp3.duration) * 100
+          Math.round(
+            (masterSong.mp3.currentTime / masterSong.mp3.duration) * 100
+          )
         );
         setCurrTime(formatTime(masterSong.mp3.currentTime));
       }, 1000);
@@ -109,6 +120,13 @@ const SongBar = () => {
     masterSong.mp3.currentTime = (newProgress / 100) * masterSong.mp3.duration;
   };
 
+  const [volume, setVolume] = useState(50);
+
+  const changeVolume = (e) => {
+    setVolume(e.target.value);
+    masterSong.mp3.volume = e.target.value / 100;
+  };
+
   const formatTime = (time) => {
     if (isNaN(time)) return "00:00";
     const minutes = Math.floor(time / 60);
@@ -118,8 +136,19 @@ const SongBar = () => {
       .padStart(2, "0")}`;
   };
 
+  const backwardSong = () => {
+    console.log("backward");
+    setSongIdx((prevState) => prevState - 1);
+    dispatch(playSong(songs[songIdx]));
+  };
+  const forwardSong = () => {
+    console.log("forward");
+    setSongIdx((prevState) => prevState + 1);
+    dispatch(playSong(songs[songIdx]));
+  };
+
   return (
-    <div className="w-full fixed bottom-0 left-0 h-20 bg-black flex justify-between items-center px-4">
+    <div className="w-full fixed bottom-0 left-0 h-[90px] bg-black flex justify-between items-center px-4">
       <div className="flex items-center gap-4 w-[30%] min-w-[250px]">
         <img
           src="https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
@@ -138,9 +167,9 @@ const SongBar = () => {
       </div>
 
       <div className="flex flex-col items-center w-[40%] min-w-[300px]">
-        <div className="flex justify-center gap-5 items-center">
+        <div className="flex justify-center gap-5 items-center mt-1">
           <LuShuffle className="text-lg" />
-          <IoIosSkipBackward className="text-2xl" />
+          <IoIosSkipBackward onClick={backwardSong} className="text-2xl" />
           {isPlaying ? (
             <button onClick={handleMaster}>
               <IoPauseCircleSharp className="text-white text-[40px]" />
@@ -150,24 +179,31 @@ const SongBar = () => {
               <IoPlayCircleSharp className="text-white text-[40px]" />
             </button>
           )}
-          <IoIosSkipForward className="text-2xl" />
+          <IoIosSkipForward onClick={forwardSong} className="text-2xl" />
           <LuRepeat2 className="text-lg" />
         </div>
-        <div className="flex items-center gap-2 w-full px-4">
+
+        <div className="flex items-center gap-3 w-full px-4 mt-2 mb-1">
           <span className="text-xs text-gray-400 w-8 text-right">
             {currTime}
           </span>
-          <input
-            type="range"
-            min={0}
-            value={progress}
-            onChange={changeProgress}
-            disabled={!masterSong?.mp3}
-            max={100}
-            className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-          />
+          <div className="relative w-full flex items-center group">
+            <div className="absolute h-1 bg-gray-600 rounded-lg w-full"></div>
+            <div
+              className="absolute h-1 bg-white rounded-lg group-hover:bg-green-500 transition-colors duration-200"
+              style={{ width: `${progress}%` }}
+            ></div>
+            <input
+              type="range"
+              min={0}
+              value={progress}
+              onChange={changeProgress}
+              disabled={!masterSong?.mp3}
+              max={100}
+              className="w-full h-1 bg-transparent appearance-none cursor-pointer relative z-10"
+            />
+          </div>
           <span className="text-xs text-gray-400 w-8">
-            {console.log("📏 Duration State:", duration)}
             {formatTime(duration)}
           </span>
         </div>
@@ -176,13 +212,25 @@ const SongBar = () => {
       <div className="flex items-center justify-end w-[30%] min-w-[250px] gap-4">
         <AiOutlinePlaySquare className="text-xl" />
         <HiOutlineQueueList className="text-xl" />
-        <LuVolume2 className="text-xl" />
-        <input
-          type="range"
-          min={0}
-          max={100}
-          className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-        />
+        {volume == 0 && <LuVolume className="text-xl" />}
+        {volume > 0 && volume <= 50 && <LuVolume1 className="text-xl" />}
+        {volume > 50 && <LuVolume2 className="text-xl" />}
+        <div className="relative w-24 flex items-center group">
+          <div className="absolute h-1 bg-gray-600 rounded-lg w-full"></div>
+          <div
+            className="absolute h-1 bg-white rounded-lg group-hover:bg-green-500 transition-colors duration-200"
+            style={{ width: `${volume}%` }}
+          ></div>
+          <input
+            type="range"
+            min={0}
+            value={volume}
+            onChange={changeVolume}
+            disabled={!masterSong?.mp3}
+            max={100}
+            className="w-full h-1 bg-transparent appearance-none cursor-pointer relative z-10"
+          />
+        </div>
         <TbArrowsDiagonal className="text-xl" />
       </div>
     </div>

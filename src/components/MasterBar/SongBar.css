@@ -1,8 +1,33 @@
-.play-btn {
-  transform: scale(0.8);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+input[type="range"] {
+  position: relative;
 }
 
-.play_btn:hover {
-  transform: scale(1.1);
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background-color: #fff;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 1;
+}
+
+.active_progress {
+  position: absolute;
+  width: 0%;
+  height: 4px;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.progression:hover {
+  background-color: green;
 }
