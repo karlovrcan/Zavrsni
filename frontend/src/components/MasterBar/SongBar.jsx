@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { playMaster, pauseMaster } from "../../states/Actors/SongActors";
+import { playSong } from "../../states/Actors/SongActors";
 import "./SongBar.css";
-
+import { songs } from "../Home/Home";
 import {
   IoMdAddCircleOutline,
   IoIosSkipBackward,
@@ -38,6 +39,8 @@ const SongBar = () => {
     setDuration,
     songIdx,
     setSongIdx,
+    pendingSongIdx,
+    setPendingSongIdx,
   } = useGlobalContext();
 
   useEffect(() => {
@@ -136,15 +139,30 @@ const SongBar = () => {
       .padStart(2, "0")}`;
   };
 
-  const backwardSong = () => {
-    console.log("backward");
-    setSongIdx((prevState) => prevState - 1);
-    dispatch(playSong(songs[songIdx]));
-  };
+  useEffect(() => {
+    if (songs[songIdx] && isPlaying) {
+      // ✅ Ensure correct song is playing
+      console.log(`🎵 Now Playing: ${songs[songIdx].title}`);
+      dispatch(playSong(songs[songIdx]));
+    }
+  }, [songIdx, isPlaying, dispatch]);
+
   const forwardSong = () => {
-    console.log("forward");
-    setSongIdx((prevState) => prevState + 1);
-    dispatch(playSong(songs[songIdx]));
+    if (songIdx < songs.length - 1) {
+      console.log(`⏭️ Skipping Forward (Current Index: ${songIdx})`);
+      setPendingSongIdx(songIdx + 1); // ✅ Defer state update
+    } else {
+      console.warn("🚨 No next song available");
+    }
+  };
+
+  const backwardSong = () => {
+    if (songIdx > 0) {
+      console.log(`⏮️ Skipping Backward (Current Index: ${songIdx})`);
+      setPendingSongIdx(songIdx - 1); // ✅ Defer state update
+    } else {
+      console.warn("🚨 No previous song available");
+    }
   };
 
   return (

@@ -4,8 +4,7 @@ import Card from "../Card/Card";
 import { FiSearch } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import SongBar from "../MasterBar/SongBar";
-
-const songs = [
+export const songs = [
   {
     id: Math.random() * Date.now(),
     title: "Mr. Weatherman",

@@ -4,6 +4,7 @@ import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
 import { playSong, pauseSong } from "../../states/Actors/SongActors";
 import { useGlobalContext } from "../../states/Content";
+import { songs } from "../Home/Home";
 
 const Card = ({ song }) => {
   if (!song) {
@@ -13,14 +14,29 @@ const Card = ({ song }) => {
 
   const { masterSong, isPlaying } = useSelector((state) => state.mainSong);
   const dispatch = useDispatch();
-  const { resetEverything } = useGlobalContext();
+  const { resetEverything, setSongIdx } = useGlobalContext();
 
-  const handlePlay = () => {
-    if (masterSong?.id === song.id && isPlaying) {
-      dispatch(pauseSong());
-      resetEverything();
+  const handlePlay = (song) => {
+    console.log("🎵 handlePlay triggered, received song:", song);
+
+    if (!song || !song.id) {
+      console.error("🚨 handlePlay was triggered with an invalid song:", song);
+      return;
+    }
+
+    console.log("🎶 Available Songs:", songs); // Check if songs array exists
+    console.log(`🎵 Searching for: ${song.title}, ID: ${song.id}`);
+
+    const selectedIndex = songs.findIndex(
+      (s) => String(s.id) === String(song.id)
+    );
+    console.log(`🎵 Index Found: ${selectedIndex}`);
+
+    if (selectedIndex !== -1) {
+      setSongIdx(selectedIndex); // ✅ Store the correct index when clicking a song
+      dispatch(playSong(song)); // ✅ Play the selected song
     } else {
-      dispatch(playSong(song));
+      console.error("🚨 Song not found in the list!");
     }
   };
 
@@ -33,11 +49,12 @@ const Card = ({ song }) => {
           className="rounded-lg"
         />
         {masterSong?.id === song.id && isPlaying ? (
-          <button onClick={handlePlay} className="play_btn">
+          <button onClick={() => handlePlay(song)} className="play_btn">
+            {" "}
             <IoIosPause className="text-black text-2xl" />
           </button>
         ) : (
-          <button onClick={handlePlay} className="play_btn">
+          <button onClick={() => handlePlay(song)} className="play_btn">
             <IoIosPlay className="text-black text-2xl" />
           </button>
         )}
