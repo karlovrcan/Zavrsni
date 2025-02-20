@@ -1,23 +1,27 @@
+// app.js
 import express from "express";
-import connectDB from "./db.js"; // Import fixed MongoDB connection
-import userRoutes from "./routes/user.js"; // Correct import for user routes
-import cors from "cors";
 import dotenv from "dotenv";
+import connectDB from "./db.js";
+import userRoutes from "./routes/user.js";
 
-dotenv.config(); // Load environment variables
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Corrected PORT assignment
+const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(cors());
-app.use(express.json()); // Enable JSON parsing
+// Middleware to parse JSON bodies
+app.use(express.json());
 
-// Routes
+// Mount user routes under /api/user
 app.use("/api/user", userRoutes);
+
+// Health check route (optional)
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
