@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import User from "../models/User.js";
+import User from "../Models/User.js";
 
 dotenv.config();
 
@@ -16,12 +16,17 @@ const router = express.Router();
  * @access  Public
  */
 router.post("/register", async (req, res) => {
-  const { username, password, gender, DOB, email } = req.body;
+  const { username, password, password1, gender, day, month, year, email } =
+    req.body;
   try {
     // Check if the user already exists
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
+    }
+
+    if (password !== password1) {
+      return res.status(400).json({ message: "Passwords do not match" });
     }
 
     // Hash the password
@@ -33,7 +38,9 @@ router.post("/register", async (req, res) => {
       username,
       password: hashedPassword,
       gender,
-      DOB,
+      day,
+      month,
+      year,
       email,
     });
 
@@ -75,6 +82,10 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
+});
+router.get("/users", async (req, res) => {
+  const users = await User.find();
+  res.json({ users, success: true, message: "user found" });
 });
 
 export default router;

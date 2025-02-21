@@ -3,6 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./db.js";
 import userRoutes from "./routes/user.js";
+import cors from "cors";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ connectDB();
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+app.use(cors());
 
 // Mount user routes under /api/user
 app.use("/api/user", userRoutes);
