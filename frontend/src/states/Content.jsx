@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { songs } from "../components/Home/Home";
+import { songs } from "../../src/assets/songs/songs";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+import { userActor } from "./Actors/userActors";
 
 const AppContext = createContext();
 
@@ -9,6 +12,35 @@ export const AppProvider = ({ children }) => {
   const [progress, setProgress] = useState(0);
   const [songIdx, setSongIdx] = useState(0);
   const [pendingSongIdx, setPendingSongIdx] = useState(null);
+  const [filteredSongs, setFilteredSongs] = useState ([]);
+
+  const dispatch = useDispatch();
+  const getUser = async () => {
+    const tokenString = localStorage.getItem("token");
+    const token =
+      tokenString && tokenString !== "undefined"
+        ? JSON.parse(tokenString)
+        : null;
+    if (tokenString === "undefined") {
+      localStorage.removeItem("token");
+    }
+    if (token) {
+      const res = await fetch("http://localhost:5001/api/user/me", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          token: token,
+        },
+      });
+      const Data = await res.json();
+      if (Data.success && Data.token) {
+        localStorage.setItem("token", JSON.stringify(Data.token));
+        dispatch(userActor(Data.user));
+      } else {
+        toast.error(Data.message);
+      }
+    }
+  };
 
   useEffect(() => {
     if (pendingSongIdx !== null) {
@@ -51,6 +83,9 @@ export const AppProvider = ({ children }) => {
         songIdx,
         setSongIdx,
         setPendingSongIdx,
+        getUser,
+        filteredSongs, 
+        setFilteredSongs,
       }}
     >
       {children}

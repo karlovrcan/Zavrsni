@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import User from "../Models/User.js";
+import generateToken from "../Helper/generateToken.js";
 
 dotenv.config();
 
@@ -19,7 +20,15 @@ router.post("/register", async (req, res) => {
   const { username, password, password1, gender, day, month, year, email } =
     req.body;
   try {
-    // Check if the user already exists
+    if (!username) {
+      return res
+        .status(400)
+        .json({ message: "You haven't filled all the required fields!" });
+    }
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: "Email already in use!" });
+    }
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
@@ -28,12 +37,9 @@ router.post("/register", async (req, res) => {
     if (password !== password1) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
-
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create and save the new user
     const newUser = await User.create({
       username,
       password: hashedPassword,
@@ -56,28 +62,31 @@ router.post("/register", async (req, res) => {
  * @access  Public
  */
 router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { login, password } = req.body;
   try {
-    // Find the user by username
-    const user = await User.findOne({ username });
+    // Find a user where either username or email matches the provided login value
+    const user = await User.findOne({
+      $or: [{ username: login }, { email: login }],
+    });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Compare the provided password with the hashed password in the DB
+    // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Login cretentials incorrect." });
     }
 
-    // Sign a JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
+    // Sign and return a JWT token
+    const token = await generateToken(user._id);
     return res.status(200).json({
       message: "Login successful",
       token,
+      success: true,
+      user,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -86,6 +95,28 @@ router.post("/login", async (req, res) => {
 router.get("/users", async (req, res) => {
   const users = await User.find();
   res.json({ users, success: true, message: "user found" });
+});
+
+router.get("/me", async (req, res) => {
+  try {
+    const { token } = req.headers;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: true, message: "User unauthorised." });
+    }
+    const data = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(data.id);
+    if (user) {
+      return res.json({ success: true, message: "User found." });
+    } else {
+      return res
+        .status(404)
+        .json({ success: true, message: "User not found." });
+    }
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 });
 
 export default router;

@@ -4,7 +4,7 @@ import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
 import { playSong, pauseSong } from "../../states/Actors/SongActors";
 import { useGlobalContext } from "../../states/Content";
-import { songs } from "../Home/Home";
+import { songs } from "../../assets/songs/songs";
 
 const Card = ({ song }) => {
   if (!song) {
@@ -41,7 +41,7 @@ const Card = ({ song }) => {
   };
 
   return (
-    <div className="card col-span-1 secondary_bg p-3 rounded-lg shadow-md hover:shadow-lg">
+    <div className="card col-span-1  p-3 rounded-lg  hover:shadow-lg">
       <div className="relative">
         <img
           src="https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"

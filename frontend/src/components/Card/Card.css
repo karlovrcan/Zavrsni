@@ -8,7 +8,7 @@
 .card img {
   width: 100%;
   height: auto;
-  border-radius: inherit;
+  border-radius: 6px;
   display: block;
 }
 

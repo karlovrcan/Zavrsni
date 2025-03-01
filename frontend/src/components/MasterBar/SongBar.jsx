@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { playMaster, pauseMaster } from "../../states/Actors/SongActors";
 import { playSong } from "../../states/Actors/SongActors";
 import "./SongBar.css";
-import { songs } from "../Home/Home";
+import { songs } from "../../assets/songs/songs";
 import {
   IoMdAddCircleOutline,
   IoIosSkipBackward,

@@ -1,7 +1,12 @@
-body {
+.auth-bg {
   background: linear-gradient(to bottom, rgb(41, 41, 41), #000);
   min-height: 100vh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
 
 input:-webkit-autofill,
