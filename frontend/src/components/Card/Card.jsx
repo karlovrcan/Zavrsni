@@ -15,6 +15,7 @@ const Card = ({ song }) => {
   const { masterSong, isPlaying } = useSelector((state) => state.mainSong);
   const dispatch = useDispatch();
   const { resetEverything, setSongIdx } = useGlobalContext();
+  const currentSong = songs.find((s) => s.id === song.id);
 
   const handlePlay = (song) => {
     console.log("🎵 handlePlay triggered, received song:", song);
@@ -44,7 +45,10 @@ const Card = ({ song }) => {
     <div className="card col-span-1  p-3 rounded-lg  hover:shadow-lg">
       <div className="relative">
         <img
-          src="https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+          src={
+            currentSong?.img ||
+            "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+          }
           alt="Album Cover"
           className="rounded-lg"
         />

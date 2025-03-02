@@ -109,13 +109,9 @@ router.get("/me", async (req, res) => {
     const user = await User.findById(data.id);
     if (user) {
       return res.json({ success: true, message: "User found." });
-    } else {
-      return res
-        .status(404)
-        .json({ success: true, message: "User not found." });
     }
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    res.json({ success: false, message: "Session expired." });
   }
 });
 

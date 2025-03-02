@@ -24,8 +24,8 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="flex-grow overflow-auto ">
-        <div className="secondary_bg rounded-lg px-2 py-2">
+      <div className="flex-grow h-full overflow-hidden">
+        <div className="secondary_bg rounded-lg px-2 py-2 h-full flex flex-col">
           <div className="flex px-4 justify-between mb-4 items-center gap-4">
             <div className="flex gap-2 items-center">
               <BiLibrary className="font-bold text-2xl" />
@@ -36,7 +36,8 @@ const Sidebar = () => {
             </button>
           </div>
 
-          <div className="your_library flex flex-col gap-4">
+          {/* Scrollable section inside the sidebar */}
+          <div className="your_library flex flex-col gap-4 overflow-y-auto pr-2 h-full">
             <div className="tertiary_bg rounded-lg px-4 py-6">
               <p className="font-bold">Create your first playlist.</p>
               <p className="font-semibold">It's easy, we'll help you.</p>

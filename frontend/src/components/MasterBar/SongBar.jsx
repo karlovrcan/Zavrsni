@@ -165,11 +165,23 @@ const SongBar = () => {
     }
   };
 
+  const [currentSong, setCurrentSong] = useState(null);
+
+  useEffect(() => {
+    if (masterSong) {
+      const foundSong = songs.find((song) => song.id === masterSong.id);
+      setCurrentSong(foundSong);
+    }
+  }, [masterSong]);
+
   return (
     <div className="w-full fixed bottom-0 left-0 h-[90px] bg-black flex justify-between items-center px-4">
       <div className="flex items-center gap-4 w-[30%] min-w-[250px]">
         <img
-          src="https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+          src={
+            currentSong?.img ||
+            "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+          }
           alt="Song Cover"
           className="h-14 w-14 rounded-md"
         />
