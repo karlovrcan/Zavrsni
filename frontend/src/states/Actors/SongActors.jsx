@@ -1,30 +1,58 @@
-import {
-  PLAY_SONG_REQUEST,
-  PAUSE_SONG_REQUEST,
-  PLAY_MASTER,
-  PAUSE_MASTER,
-} from "../Constants/SongConstant";
+import { setSpotifyDeviceId } from "../Actions/SpotifyActions"; // Import action to store device ID
 
-export const playSong = (song) => {
-  return { type: PLAY_SONG_REQUEST, payload: song };
-};
+export const playSong = (uri) => async (dispatch, getState) => {
+  const accessToken = getState().spotify.accessToken;
+  const deviceId = getState().spotify.deviceId; // ✅ Get stored device ID from Redux
 
-export const pauseSong = () => {
-  return { type: PAUSE_SONG_REQUEST };
-};
-
-export const playMaster = () => (dispatch, getState) => {
-  const { masterSong } = getState().mainSong;
-  if (masterSong && masterSong.mp3) {
-    masterSong.mp3.play().catch((err) => console.error("Play Error:", err));
+  if (!accessToken) {
+    console.error("⚠️ No access token available.");
+    return;
   }
-  dispatch({ type: PLAY_MASTER });
-};
 
-export const pauseMaster = () => (dispatch, getState) => {
-  const { masterSong } = getState().mainSong;
-  if (masterSong && masterSong.mp3) {
-    masterSong.mp3.pause();
+  if (!deviceId) {
+    console.error(
+      "⚠️ No active device found. Make sure the Web Playback SDK is running."
+    );
+    return;
   }
-  dispatch({ type: PAUSE_MASTER });
+
+  try {
+    console.log(`🎵 Using device: ${deviceId}`);
+
+    // 🚀 **Step 1: Transfer Playback to Your App**
+    await fetch("https://api.spotify.com/v1/me/player", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ device_ids: [deviceId], play: true }),
+    });
+
+    console.log("✅ Playback transferred to app:", deviceId);
+
+    // 🚀 **Step 2: Play the song**
+    const playRes = await fetch(
+      `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uris: [uri] }),
+      }
+    );
+
+    if (!playRes.ok) {
+      const errorMessage = await playRes.text();
+      throw new Error(
+        `⚠️ Failed to play song: ${playRes.status} - ${errorMessage}`
+      );
+    }
+
+    console.log("🎶 Song is now playing in your app!");
+  } catch (error) {
+    console.error("❌ Error playing song:", error);
+  }
 };

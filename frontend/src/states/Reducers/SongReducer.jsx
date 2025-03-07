@@ -12,33 +12,15 @@ const initialState = {
 
 export const songReducer = (state = initialState, action) => {
   switch (action.type) {
-    case PLAY_SONG_REQUEST:
-      if (state.masterSong && state.masterSong.mp3) {
-        state.masterSong.mp3.pause();
-        state.masterSong.mp3.currentTime = 0;
-      }
+    case "PLAY_SONG_REQUEST":
       return {
-        ...state,
-        masterSong: action.payload,
-        isPlaying: true,
+        masterSong: action.payload, // Set the current song
+        isPlaying: true, // Set the song as playing
       };
-    case PAUSE_SONG_REQUEST:
-      if (state.masterSong && state.masterSong.mp3) {
-        state.masterSong.mp3.pause();
-      }
+    case "PAUSE_SONG_REQUEST":
       return {
         ...state,
-        isPlaying: false,
-      };
-    case PLAY_MASTER:
-      return {
-        ...state,
-        isPlaying: true,
-      };
-    case PAUSE_MASTER:
-      return {
-        ...state,
-        isPlaying: false,
+        isPlaying: false, // Set the song as paused
       };
     default:
       return state;

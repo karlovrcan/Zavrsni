@@ -17,42 +17,43 @@ const router = express.Router();
  * @access  Public
  */
 router.post("/register", async (req, res) => {
-  const { username, password, password1, gender, day, month, year, email } =
-    req.body;
   try {
-    if (!username) {
-      return res
-        .status(400)
-        .json({ message: "You haven't filled all the required fields!" });
-    }
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
-      return res.status(400).json({ message: "Email already in use!" });
-    }
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    console.log("Received registration request:", req.body); // ✅ Debugging log
+
+    const { username, password, email, day, month, year } = req.body;
+
+    if (!username || !password || !email || !day || !month || !year) {
+      console.error("❌ Missing required fields:", req.body);
+      return res.status(400).json({ message: "Please fill in all fields." });
     }
 
-    if (password !== password1) {
-      return res.status(400).json({ message: "Passwords do not match" });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.error("❌ Email already exists:", email);
+      return res.status(400).json({ message: "Email already in use!" });
     }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = await User.create({
+    const newUser = new User({
       username,
       password: hashedPassword,
-      gender,
+      email,
       day,
       month,
       year,
-      email,
     });
 
-    return res.status(201).json({ message: "User registered successfully" });
+    await newUser.save();
+    console.log("✅ User registered successfully:", newUser);
+
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    console.error("❌ Registration error:", error); // ✅ Print detailed error
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 });
 
@@ -92,26 +93,41 @@ router.post("/login", async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 });
+
 router.get("/users", async (req, res) => {
-  const users = await User.find();
-  res.json({ users, success: true, message: "user found" });
+  try {
+    const token = req.header("Authorization")?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== "admin")
+      return res.status(403).json({ message: "Forbidden: Admins only" });
+
+    const users = await User.find().select("-password");
+    res.json({ users, success: true, message: "Users retrieved" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 router.get("/me", async (req, res) => {
   try {
-    const { token } = req.headers;
-    if (!token) {
+    const token = req.header("Authorization")?.split(" ")[1];
+    if (!token)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select("-password");
+    if (!user)
       return res
-        .status(401)
-        .json({ success: true, message: "User unauthorised." });
-    }
-    const data = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(data.id);
-    if (user) {
-      return res.json({ success: true, message: "User found." });
-    }
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    res.json({ success: true, user });
   } catch (error) {
-    res.json({ success: false, message: "Session expired." });
+    res
+      .status(403)
+      .json({ success: false, message: "Invalid or expired token" });
   }
 });
 

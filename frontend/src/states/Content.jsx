@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { songs } from "../../src/assets/songs/songs";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { userActor } from "./Actors/userActors";
@@ -12,33 +11,40 @@ export const AppProvider = ({ children }) => {
   const [progress, setProgress] = useState(0);
   const [songIdx, setSongIdx] = useState(0);
   const [pendingSongIdx, setPendingSongIdx] = useState(null);
-  const [filteredSongs, setFilteredSongs] = useState ([]);
+  const [filteredSongs, setFilteredSongs] = useState([]);
 
   const dispatch = useDispatch();
+  // Content.jsx
   const getUser = async () => {
-    const tokenString = localStorage.getItem("token");
-    const token =
-      tokenString && tokenString !== "undefined"
-        ? JSON.parse(tokenString)
-        : null;
-    if (tokenString === "undefined") {
-      localStorage.removeItem("token");
-    }
-    if (token) {
-      const res = await fetch("http://localhost:5001/api/user/me", {
-        method: "GET",
+    try {
+      const token = sessionStorage.getItem("spotify_access_token");
+
+      if (!token) {
+        console.error("No access token found");
+        return;
+      }
+
+      // Fetch user data from an API or other source
+      const response = await fetch("your-api-endpoint", {
         headers: {
-          "Content-Type": "application/json",
-          token: token,
+          Authorization: `Bearer ${token}`,
         },
       });
-      const Data = await res.json();
-      if (Data.success && Data.token) {
-        localStorage.setItem("token", JSON.stringify(Data.token));
-        dispatch(userActor(Data.user));
+
+      // Check if the response is JSON
+      const data = await response.text(); // Get response as text (not JSON)
+
+      // If the response is a JWT or a non-JSON, don't attempt to parse
+      if (data.startsWith("{") || data.startsWith("[")) {
+        // It's likely JSON, so parse it
+        const parsedData = JSON.parse(data);
+        console.log("User data:", parsedData);
       } else {
-        toast.error(Data.message);
+        // Handle the case where it's a non-JSON string (e.g., JWT token)
+        console.log("Received non-JSON data:", data);
       }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
     }
   };
 
@@ -84,7 +90,7 @@ export const AppProvider = ({ children }) => {
         setSongIdx,
         setPendingSongIdx,
         getUser,
-        filteredSongs, 
+        filteredSongs,
         setFilteredSongs,
       }}
     >

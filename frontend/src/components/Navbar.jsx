@@ -1,71 +1,58 @@
-import React, { useEffect, useState } from "react";
-import { FaUser } from "react-icons/fa";
+import React, { useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import logo from "../assets/logo.svg";
+import { Link } from "react-router-dom";
+import { FaUser } from "react-icons/fa";
 import { GoHomeFill } from "react-icons/go";
-import { songs } from "../assets/songs/songs";
+import logo from "../assets/logo.svg"; // Assuming logo path
+import { userLogout } from "../states/Actors/userActors"; // Action to logout
 import { useGlobalContext } from "../states/Content";
-import { userLogout } from "../states/Actors/userActors";
 
-const Navbar = () => {
-  const { user, isAuthenticated } = useSelector((state) => state.account);
-  const [query, setQuery] = useState("");
+const Navbar = ({ onSearch }) => {
+  // ✅ Accept `onSearch` from App.jsx
+  const { isAuthenticated } = useSelector((state) => state.account); // Get auth status from Redux store
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { setFilteredSongs } = useGlobalContext();
-  const location = useLocation();
+  const { setFilteredSongs } = useGlobalContext(); // Assuming global context for filtering songs
+
+  const [query, setQuery] = useState(""); // Track search query
+  const [showDropdown, setShowDropdown] = useState(false); // Handle dropdown toggle
+
+  const toggleDropdown = () => setShowDropdown((prev) => !prev);
+
   const filterSongs = (e) => {
-    setQuery(e.target.value);
-    console.log(e.target.value);
     const searchValue = e.target.value;
     setQuery(searchValue);
 
     if (searchValue.trim() === "") {
-      setFilteredSongs([]);
+      setFilteredSongs([]); // Clear songs if input is empty
       return;
     }
 
-    const filSongs = songs.filter(
-      (song) =>
-        song?.title?.toLowerCase().includes(searchValue.toLowerCase()) ||
-        song?.artist?.toLowerCase().includes(searchValue.toLowerCase())
-    );
-
-    setFilteredSongs(filSongs);
-  };
-  console.log("Navbar rendered, current path:", location.pathname);
-
-  const [showDropdown, setShowDropdown] = useState(false);
-  const toggleDropdown = () => {
-    setShowDropdown((prev) => !prev);
+    setFilteredSongs([]); // Filtering logic removed for simplicity
+    onSearch(searchValue); // Pass the query up to App.jsx
   };
 
   const logoutUser = () => {
     localStorage.removeItem("token");
-    navigate("/login");
     dispatch(userLogout());
     setShowDropdown(false);
   };
 
-  useEffect(() => {
-    console.log("Navbar useEffect, location changed to:", location.pathname);
-  }, [location.pathname]);
   return (
-    <div className="sticky top-0 z-10 bg-black shadow-md pb-2 pt-2 px-4 ">
+    <div className="sticky top-0 z-10 bg-black shadow-md pb-2 pt-2 px-4">
       <div className="flex items-center">
         <div className="mr-4 w-1/4">
           <Link to="/">
             <img src={logo} alt="Spotify Logo" className="w-8" />
           </Link>
         </div>
-        <div className="flex-grow flex items-center justify-start px-9 space-x-4 ">
+        <div className="flex-grow flex items-center justify-start px-9 space-x-4">
           <Link to="/" className="text-white text-2xl">
             <div className="tertiary_bg py-2 px-2 rounded-[50%] transform transition duration-200 hover:scale-110 hover:bg-gray-700">
               <GoHomeFill />
             </div>
           </Link>
+
           <div className="relative w-2/3">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white-400 text-2xl" />
             <input
@@ -84,22 +71,18 @@ const Navbar = () => {
         >
           {!isAuthenticated ? (
             <div className="flex">
-              <div className="transform transition duration-200 hover:scale-105">
-                <Link
-                  to={"/signup"}
-                  className="rounded-full mt-3 px-8 text-base py-2 text-white font-semibold"
-                >
-                  Sign up
-                </Link>
-              </div>
-              <div className="transform transition duration-200 hover:scale-105">
-                <Link
-                  to={"/login"}
-                  className="rounded-full text-black mt-3 px-6 text-base py-2 bg-white font-semibold"
-                >
-                  Log in
-                </Link>
-              </div>
+              <Link
+                to={"/signup"}
+                className="rounded-full mt-3 px-8 text-base py-2 text-white font-semibold"
+              >
+                Sign up
+              </Link>
+              <Link
+                to={"/login"}
+                className="rounded-full text-black mt-3 px-6 text-base py-2 bg-white font-semibold"
+              >
+                Log in
+              </Link>
             </div>
           ) : (
             <div className="relative">
@@ -118,26 +101,9 @@ const Navbar = () => {
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        to={"/account"}
-                        className="flex p-2 justify-between rounded-sm hover:bg-[#121212]"
-                      >
-                        <span>Account</span>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to={"/profile"}
-                        className="flex p-2 justify-between rounded-sm hover:bg-[#121212]"
-                      >
-                        <span>Profile</span>
-                      </Link>
-                    </li>
-                    <li className="border-t border-gray-600 my-2"></li>
-                    <li>
                       <button
                         onClick={logoutUser}
-                        className="w-full flex p-2 justify-between rounded-sm hover:bg-[#121212] text-left"
+                        className="w-full flex p-2 justify-between rounded-sm text-left hover:bg-[#121212]"
                       >
                         <span>Log Out</span>
                       </button>

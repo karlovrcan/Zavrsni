@@ -4,6 +4,7 @@ import logo from "../../assets/logo.svg";
 import { toast } from "react-toastify";
 import "./signup.css";
 import { useSelector } from "react-redux";
+
 const months = [
   "January",
   "February",
@@ -24,65 +25,84 @@ const Signup = () => {
     username: "",
     password: "",
     password1: "",
-    gender: "",
     email: "",
     day: "",
     month: "January",
     year: "",
   });
+
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.account);
+
+  // 🔹 Handle Input Changes
   const onChange = (e) => {
     setUserDetails({ ...userDetails, [e.target.name]: e.target.value });
   };
-  const navigate = useNavigate();
-  const { isAuthenticated } = useSelector((state) => state.account);
+
+  // 🔹 Handle Form Submission
   const registerUser = async (e) => {
     e.preventDefault();
-    const index = months.indexOf(userDetails.month);
-    const { username, password, password1, gender, email, day, month, year } =
-      userDetails;
-    let data = JSON.stringify({
-      username,
-      password,
-      password1,
-      gender,
-      email,
-      day,
-      month,
-      year,
-    });
-    const res = await fetch("http://localhost:5001/api/user/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: data,
-    });
-    const Data = await res.json();
-    if (Data.success) {
-      setUserDetails({
-        username: "",
-        password: "",
-        password1: "",
-        gender: "",
-        email: "",
-        day: "",
-        month: "",
-        year: "",
-      });
-      toast.success(Data.message);
 
-      localStorage.setItem("token", JSON.stringify(Data.token));
-      navigate("/login");
-    } else {
-      toast.error(Data.message);
+    const { username, password, password1, email, day, month, year } =
+      userDetails;
+
+    // Basic Form Validation
+    if (
+      !username ||
+      !password ||
+      !password1 ||
+      !email ||
+      !day ||
+      !month ||
+      !year
+    ) {
+      toast.error("Please fill in all fields.");
+      return;
     }
-    console.log(Data);
+    if (password !== password1) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5001/api/user/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          password,
+          email,
+          day,
+          month,
+          year,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Signup successful!");
+        sessionStorage.setItem("token", data.token); // Store token in session storage
+        navigate("/"); // Redirect to homepage after signup
+      } else {
+        toast.error(data.message || "Signup failed.");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("Server error. Please try again later.");
+    }
   };
+
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/login");
+      navigate("/");
     }
-  }, []);
+  }, [isAuthenticated, navigate]);
+
   return (
     <>
       <div className="auth-bg">
@@ -96,10 +116,10 @@ const Signup = () => {
               Sign up to start listening.
             </h1>
 
-            <form className="text-center space-y-4">
+            <form onSubmit={registerUser} className="text-center space-y-4">
               <div className="w-full text-sm font-bold text-left">
-                <label htmlFor="email" className="block mb-2 ">
-                  What is your email?
+                <label htmlFor="email" className="block mb-2">
+                  Email
                 </label>
                 <input
                   type="text"
@@ -107,81 +127,76 @@ const Signup = () => {
                   name="email"
                   value={userDetails.email}
                   onChange={onChange}
-                  placeholder="Email"
-                  className="w-full bg-[#121212] text-white font-normal rounded-md border border-gray-600 shadow-sm 
-            px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none"
+                  placeholder="Enter your email"
+                  className="w-full bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                 />
               </div>
+
               <div className="w-full text-sm font-bold text-left">
-                <label htmlFor="password" className="block mb-2 ">
-                  Create password
+                <label htmlFor="password" className="block mb-2">
+                  Create Password
                 </label>
                 <input
                   type="password"
                   id="password"
+                  name="password"
                   value={userDetails.password}
                   onChange={onChange}
-                  name="password"
                   placeholder="Password"
-                  className="w-full bg-[#121212] text-white font-normal rounded-md border border-gray-600 shadow-sm 
-            px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none"
+                  className="w-full bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                 />
               </div>
+
               <div className="w-full text-sm font-bold text-left">
                 <label htmlFor="password1" className="block mb-2">
-                  Confirm password
+                  Confirm Password
                 </label>
                 <input
                   type="password"
                   id="password1"
+                  name="password1"
                   value={userDetails.password1}
                   onChange={onChange}
-                  name="password1"
-                  placeholder="Password"
-                  className="w-full bg-[#121212] text-white font-normal rounded-md border border-gray-600 shadow-sm 
-            px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none"
+                  placeholder="Confirm Password"
+                  className="w-full bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                 />
               </div>
+
               <div className="w-full text-sm font-bold text-left">
                 <label htmlFor="username" className="block mb-2">
-                  Your prefered name
+                  Your Preferred Name
                 </label>
                 <input
                   type="text"
                   id="username"
+                  name="username"
                   value={userDetails.username}
                   onChange={onChange}
-                  name="username"
-                  className="w-full bg-[#121212] text-white font-normal rounded-md border border-gray-600 shadow-sm 
-            px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none mb-2"
+                  placeholder="Enter your username"
+                  className="w-full bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                 />
-                <small className="font-light">
-                  This name will appear on your profile.
-                </small>
               </div>
 
               <div className="w-full text-sm font-bold text-left">
                 <label htmlFor="date" className="block mb-2">
-                  Date of birth
+                  Date of Birth
                 </label>
-                <div className="w-full flex gap-4">
+                <div className="flex gap-4">
                   <input
                     type="text"
                     id="day"
+                    name="day"
                     value={userDetails.day}
                     onChange={onChange}
-                    name="day"
-                    placeholder="dd"
-                    className="w-1/4 bg-[#121212] text-white font-normal rounded-md border border-gray-600 shadow-sm 
-    px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none mb-2"
+                    placeholder="DD"
+                    className="w-1/4 bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                   />
                   <select
                     id="month"
                     name="month"
                     value={userDetails.month}
                     onChange={onChange}
-                    className="w-2/4 bg-[#121212] text-white font-normal rounded-md border border-gray-600
-       shadow-sm px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none mb-2"
+                    className="w-2/4 bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                   >
                     {months.map((m) => (
                       <option key={m} value={m}>
@@ -192,112 +207,23 @@ const Signup = () => {
                   <input
                     type="text"
                     id="year"
+                    name="year"
                     value={userDetails.year}
                     onChange={onChange}
-                    name="year"
-                    placeholder="yyyy"
-                    className="w-1/4 bg-[#121212] text-white font-normal rounded-md border border-gray-600 shadow-sm 
-    px-4 py-3 focus:ring-2 focus:ring-white focus:outline-none mb-2"
+                    placeholder="YYYY"
+                    className="w-1/4 bg-[#121212] text-white rounded-md border border-gray-600 px-4 py-3 focus:ring-2 focus:ring-white"
                   />
                 </div>
               </div>
-              <div className="w-full text-sm font-bold text-left mt-6">
-                <fieldset>
-                  <legend className="block mb-2 font-bold">Gender</legend>
-                  <p className="text-gray-400 text-sm mb-4 font-light">
-                    We use your gender to help personalize our content
-                    recommendations and ads for you.
-                  </p>
-                  <div className="flex flex-wrap gap-4 font-normal">
-                    <label htmlFor="man" className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="gender"
-                        id="man"
-                        value="man"
-                        onChange={onChange}
-                        className="hidden peer"
-                      />
-                      <span className="w-5 h-5 border-2 border-gray-500 peer-checked:border-green-500 peer-checked:bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="w-2.5 h-2.5 bg-black rounded-full"></span>
-                      </span>
-                      Man
-                    </label>
 
-                    <label htmlFor="woman" className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="gender"
-                        id="woman"
-                        value="woman"
-                        onChange={onChange}
-                        className="hidden peer"
-                      />
-                      <span className="w-5 h-5 border-2 border-gray-500 peer-checked:border-green-500 peer-checked:bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="w-2.5 h-2.5 bg-black rounded-full"></span>
-                      </span>
-                      Woman
-                    </label>
+              <button
+                type="submit"
+                className="w-full bg-[#1db954] text-black font-bold py-4 rounded-full hover:scale-105 transition-all duration-100"
+              >
+                Sign Up
+              </button>
 
-                    <label
-                      htmlFor="non-binary"
-                      className="flex items-center gap-2"
-                    >
-                      <input
-                        type="radio"
-                        name="gender"
-                        id="non-binary"
-                        value="non-binary"
-                        onChange={onChange}
-                        className="hidden peer"
-                      />
-                      <span className="w-5 h-5 border-2 border-gray-500 peer-checked:border-green-500 peer-checked:bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="w-2.5 h-2.5 bg-black rounded-full"></span>
-                      </span>
-                      Non-binary
-                    </label>
-
-                    <label htmlFor="other" className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="gender"
-                        id="other"
-                        value="other"
-                        onChange={onChange}
-                        className="hidden peer"
-                      />
-                      <span className="w-5 h-5 border-2 border-gray-500 peer-checked:border-green-500 peer-checked:bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="w-2.5 h-2.5 bg-black rounded-full"></span>
-                      </span>
-                      Something else
-                    </label>
-
-                    <label htmlFor="pnts" className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="gender"
-                        id="pnts"
-                        value="prefer-not-to-say"
-                        onChange={onChange}
-                        className="hidden peer"
-                      />
-                      <span className="w-5 h-5 border-2 border-gray-500 peer-checked:border-green-500 peer-checked:bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="w-2.5 h-2.5 bg-black rounded-full"></span>
-                      </span>
-                      Prefer not to say
-                    </label>
-                  </div>
-                </fieldset>
-              </div>
-            </form>
-            <div className="mt-7">
-              <form onSubmit={registerUser}>
-                <button className="w-full  bg-[#1db954] font-bold  text-black py-4  rounded-full hover:scale-105 translate-all duration-100 hover:font-bold">
-                  Sign up
-                </button>
-              </form>
-
-              <div className="text-center w-full text-gray-400 pt-4 ">
+              <div className="text-center w-full text-gray-400 pt-4">
                 <p>
                   Already have an account?{" "}
                   <Link
@@ -308,7 +234,7 @@ const Signup = () => {
                   </Link>
                 </p>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>

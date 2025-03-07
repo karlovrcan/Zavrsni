@@ -6,7 +6,8 @@ import {
 
 const initialState = {
   user: {},
-  isAuthenticated: false,
+  token: sessionStorage.getItem("token") || null, // Restore token if available
+  isAuthenticated: !!sessionStorage.getItem("token"), // Check authentication state
 };
 
 export const userReducer = (state = initialState, action) => {
@@ -14,7 +15,8 @@ export const userReducer = (state = initialState, action) => {
     case USER_LOGGED_IN:
       return {
         ...state,
-        user: action.payload,
+        user: action.payload.user,
+        token: action.payload.token,
         isAuthenticated: true,
       };
 
@@ -22,6 +24,7 @@ export const userReducer = (state = initialState, action) => {
       return {
         ...state,
         user: {},
+        token: null,
         isAuthenticated: false,
       };
 
@@ -29,7 +32,6 @@ export const userReducer = (state = initialState, action) => {
       return {
         ...state,
         user: action.payload,
-        isAuthenticated: false,
       };
 
     default:
