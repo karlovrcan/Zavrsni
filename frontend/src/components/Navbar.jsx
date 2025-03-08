@@ -1,35 +1,29 @@
 import React, { useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ Import `useNavigate`
 import { FaUser } from "react-icons/fa";
 import { GoHomeFill } from "react-icons/go";
-import logo from "../assets/logo.svg"; // Assuming logo path
-import { userLogout } from "../states/Actors/userActors"; // Action to logout
-import { useGlobalContext } from "../states/Content";
+import logo from "../assets/logo.svg";
+import { userLogout } from "../states/Actors/userActors";
 
 const Navbar = ({ onSearch }) => {
-  // ✅ Accept `onSearch` from App.jsx
-  const { isAuthenticated } = useSelector((state) => state.account); // Get auth status from Redux store
+  const { isAuthenticated } = useSelector((state) => state.account);
   const dispatch = useDispatch();
-  const { setFilteredSongs } = useGlobalContext(); // Assuming global context for filtering songs
+  const navigate = useNavigate(); // ✅ Initialize navigation hook
 
-  const [query, setQuery] = useState(""); // Track search query
-  const [showDropdown, setShowDropdown] = useState(false); // Handle dropdown toggle
+  const [query, setQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const toggleDropdown = () => setShowDropdown((prev) => !prev);
 
-  const filterSongs = (e) => {
-    const searchValue = e.target.value;
-    setQuery(searchValue);
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!query.trim()) return;
 
-    if (searchValue.trim() === "") {
-      setFilteredSongs([]); // Clear songs if input is empty
-      return;
-    }
-
-    setFilteredSongs([]); // Filtering logic removed for simplicity
-    onSearch(searchValue); // Pass the query up to App.jsx
+    // ✅ Redirect to /search with the query as a URL parameter
+    navigate(`/search?query=${encodeURIComponent(query)}`);
+    onSearch(query); // ✅ Trigger the search function in `App.jsx`
   };
 
   const logoutUser = () => {
@@ -54,14 +48,18 @@ const Navbar = ({ onSearch }) => {
           </Link>
 
           <div className="relative w-2/3">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white-400 text-2xl" />
-            <input
-              type="text"
-              placeholder="What do you want to play?"
-              value={query}
-              onChange={filterSongs}
-              className="w-full p-3 px-11 text-black rounded-full text-white tertiary_bg focus:outline-none font-normal"
-            />
+            <form onSubmit={handleSearch}>
+              {" "}
+              {/* ✅ Form to handle search */}
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white-400 text-2xl" />
+              <input
+                type="text"
+                placeholder="What do you want to play?"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full p-3 px-11 text-black rounded-full text-white tertiary_bg focus:outline-none font-normal"
+              />
+            </form>
           </div>
         </div>
         <div

@@ -1,74 +1,64 @@
 import React from "react";
 import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
-import { playSong } from "../../states/Actors/SongActors"; // Import actions
-import { useGlobalContext } from "../../states/Content"; // Assuming useGlobalContext
+import { playSong } from "../../states/Actors/SongActors";
+import { useGlobalContext } from "../../states/Content";
+import "./Card.css";
 
-const Card = ({ song }) => {
+const Card = ({ song, type }) => {
   if (!song) {
     console.error("Card component received an undefined song prop.");
     return null;
   }
 
-  const { masterSong, isPlaying } = useSelector((state) => state.mainSong); // Access current song state
+  const { masterSong, isPlaying } = useSelector((state) => state.mainSong);
   const dispatch = useDispatch();
-  const { setSongIdx } = useGlobalContext(); // Get function from context to set song index
+  const { setSongIdx } = useGlobalContext();
 
-  // Handle play button functionality
   const handlePlay = (song) => {
-    console.log("🎵 handlePlay triggered, received song:", song);
-
     if (!song || !song.uri) {
-      console.error("🚨 handlePlay was triggered with an invalid song:", song);
+      console.error("🚨 Invalid song:", song);
       return;
     }
 
-    const selectedUri = song.uri; // We need to use the URI for playback, not song.id
-    console.log(`🎵 Playing song with URI: ${selectedUri}`);
-
-    // Set the song index and dispatch play action
-    setSongIdx(song.id); // Store the song index
-    dispatch(playSong(selectedUri)); // Dispatch the play song action with the song URI
+    setSongIdx(song.id);
+    dispatch(playSong(song.uri));
   };
 
   return (
-    <div className="card col-span-1 p-3 rounded-lg hover:shadow-lg">
-      <div className="relative">
+    <div className="card col-span-1 p-3 rounded-lg hover:bg-[#1db954] relative mb-2">
+      <div className="relative flex justify-center items-center">
         <img
           src={
             song.albumCover ||
             "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
           }
           alt="Album Cover"
-          className="w-full h-full object-cover rounded-lg"
+          className={`w-full h-full object-cover ${
+            type === "artist" ? "rounded-full" : "rounded-lg"
+          }`} // ✅ Rounded for artists, squared for others
         />
 
-        {/* Play/Pause button logic */}
-        {masterSong?.uri === song.uri && isPlaying ? (
-          <button
-            onClick={() => handlePlay(song)}
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-3"
-          >
+        <button
+          onClick={() => handlePlay(song)}
+          className={`play_btn ${
+            masterSong?.uri === song.uri && isPlaying ? "active" : ""
+          }`}
+        >
+          {masterSong?.uri === song.uri && isPlaying ? (
             <IoIosPause className="text-white text-3xl" />
-          </button>
-        ) : (
-          <button
-            onClick={() => handlePlay(song)}
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-3"
-          >
+          ) : (
             <IoIosPlay className="text-white text-3xl" />
-          </button>
-        )}
+          )}
+        </button>
       </div>
 
       {/* Song title and artist */}
       <div className="mt-2 text-center">
-        <h3 className="text-white font-semibold text-sm">
-          {song.artists.map((artist) => artist.name).join(", ")}{" "}
-          {/* Display artists */}
-        </h3>
-        <p className="text-gray-400 text-xs">{song.name}</p>{" "}
-        {/* Display song title */}
+        <h3 className="text-white font-semibold text-base mb-2">{song.name}</h3>
+        <p className="text-white text-sm">
+          {song.artists.map((artist) => artist.name).join(", ")}
+        </p>
       </div>
     </div>
   );

@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AppProvider } from "./states/Content";
 import Navbar from "./components/Navbar";
@@ -7,27 +12,46 @@ import Home from "./components/Home/Home";
 import Search from "./components/Search/Search";
 import Login from "./components/Login/Login";
 import Signup from "./components/Signup/Signup";
-import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions"; // ✅ Store device ID in Redux
+import ArtistCard from "./components/ArtistCard/ArtistCard";
+import AlbumCard from "./components/AlbumCard/AlbumCard";
+import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
+import { fetchSongs } from "./api/spotifyService";
 
-const App = () => {
+const AppContent = () => {
   const dispatch = useDispatch();
   const accessToken = useSelector((state) => state.spotify.accessToken);
-  const [results, setResults] = useState([]); // ✅ Define state for search results
 
-  // Function that receives query from Navbar and handles search
+  const [songs, setSongs] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+  const [deviceId, setDeviceId] = useState(null);
+
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const searchQuery = queryParams.get("query") || "";
+
+  useEffect(() => {
+    if (searchQuery) {
+      handleSearch(searchQuery);
+    }
+  }, [searchQuery, accessToken]);
+
   const handleSearch = async (query) => {
-    if (!query) return;
+    if (!query || !accessToken) return;
+
     try {
-      const res = await fetch(
-        `https://api.spotify.com/v1/search?q=${query}&type=track&limit=10`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+      const { tracks, artists, albums, playlists } = await fetchSongs(
+        query,
+        accessToken
       );
-      const data = await res.json();
-      setResults(data.tracks.items || []); // ✅ Safely set results
+
+      setSongs(tracks);
+      setArtists(artists);
+      setAlbums(albums);
+      setPlaylists(playlists);
     } catch (error) {
-      console.error("Error fetching songs:", error);
+      console.error("Error fetching search results:", error);
     }
   };
 
@@ -48,6 +72,7 @@ const App = () => {
         player.addListener("ready", ({ device_id }) => {
           console.log("🎵 Spotify Web Player Ready. Device ID:", device_id);
           dispatch(setSpotifyDeviceId(device_id));
+          setDeviceId(device_id); // ✅ Save device ID in state
         });
 
         player.addListener("not_ready", ({ device_id }) => {
@@ -60,18 +85,35 @@ const App = () => {
   }, [accessToken, dispatch]);
 
   return (
+    <>
+      <Navbar onSearch={handleSearch} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route
+          path="/search"
+          element={
+            <Search
+              songs={songs}
+              artists={artists}
+              albums={albums}
+              playlists={playlists}
+            />
+          }
+        />
+        <Route path="/artist/:id" element={<ArtistCard />} />
+        <Route path="/album/:id" element={<AlbumCard />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+      </Routes>
+    </>
+  );
+};
+
+const App = () => {
+  return (
     <AppProvider>
       <Router>
-        <div className="App">
-          <Navbar onSearch={handleSearch} />{" "}
-          {/* ✅ Pass handleSearch to Navbar */}
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search query={results} />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-          </Routes>
-        </div>
+        <AppContent /> {/* ✅ Now useLocation() is inside Router */}
       </Router>
     </AppProvider>
   );
