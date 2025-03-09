@@ -1,13 +1,12 @@
-import React, { useEffect } from "react";
-import { useDispatch } from "react-redux";
-import { playSong } from "../../states/Actors/SongActors";
+import React from "react";
+import { useAudio } from "../../states/AudioProvider"; // ✅ Use AudioProvider instead of SongActors
 import Layout from "../../Layout/Layout";
 import SongBar from "../MasterBar/SongBar";
 import Card from "../Card/Card";
 import { useLocation } from "react-router-dom";
 
 const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
-  const dispatch = useDispatch();
+  const { playPauseSong } = useAudio(); // ✅ Get playPauseSong from AudioProvider
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
@@ -15,28 +14,54 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
   return (
     <Layout>
       <div className="px-2 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar">
-        {/* Songs Section */}
-        <h2 className="text-2xl font-bold mb-2 mt-2 px-6 hover:underline">
-          Songs
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 px-3">
-          {songs.length > 0 ? (
-            songs.slice(0, 5).map((track) => (
-              <Card
-                key={track.id}
-                song={{
-                  id: track.id,
-                  uri: track.uri,
-                  name: track.name,
-                  artists: track.artists,
-                  albumCover: track.album?.images?.[0]?.url || "",
-                }}
-                handlePlay={() => dispatch(playSong(track.uri))}
-              />
-            ))
-          ) : (
-            <p className="text-center text-white">No songs found.</p>
-          )}
+        <div className="flex mb-2">
+          <h2 className="w-[45rem] text-2xl font-bold mb-2 mt-5 px-6">
+            Top Result
+          </h2>
+          <h2 className="w-full ml-2 text-2xl font-bold mb-2 mt-5 px-6 hover:underline">
+            Songs
+          </h2>
+        </div>
+        <div className="flex">
+          <div className="w-[45rem] h-auto grid grid-cols-1 gap-4 px-3 mb-5">
+            {songs.length > 0 ? (
+              songs.slice(0, 1).map((track) => (
+                <Card
+                  key={track.id}
+                  song={{
+                    id: track.id,
+                    uri: track.uri,
+                    name: track.name,
+                    artists: track.artists,
+                    albumCover: track.album?.images?.[0]?.url || "",
+                  }}
+                  handlePlay={() => playPauseSong(track)} // ✅ Use playPauseSong
+                />
+              ))
+            ) : (
+              <p className="text-center text-white">No songs found.</p>
+            )}
+          </div>
+
+          <div className="ml-5 grid grid-cols-4 h-[60%] w-full px-3">
+            {songs.length > 0 ? (
+              songs.slice(1, 5).map((track) => (
+                <Card
+                  key={track.id}
+                  song={{
+                    id: track.id,
+                    uri: track.uri,
+                    name: track.name,
+                    artists: track.artists,
+                    albumCover: track.album?.images?.[0]?.url || "",
+                  }}
+                  handlePlay={() => playPauseSong(track)} // ✅ Use playPauseSong
+                />
+              ))
+            ) : (
+              <p className="text-center text-white">No songs found.</p>
+            )}
+          </div>
         </div>
 
         {/* Playlists Section */}
@@ -55,7 +80,7 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                   ],
                   albumCover: playlist.images[0]?.url || "",
                 }}
-                handlePlay={() => dispatch(playSong(playlist.uri || ""))}
+                handlePlay={() => playPauseSong(playlist)} // ✅ Use playPauseSong
               />
             ))
           ) : (
@@ -78,7 +103,7 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                   artists: [{ name: "Artist" }],
                   albumCover: artist.images?.[0]?.url || "",
                 }}
-                handlePlay={() => dispatch(playSong(artist.uri || ""))}
+                handlePlay={() => playPauseSong(artist)} // ✅ Use playPauseSong
               />
             ))
           ) : (
@@ -100,7 +125,7 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                   artists: album.artists || [],
                   albumCover: album.images?.[0]?.url || "",
                 }}
-                handlePlay={() => dispatch(playSong(album.uri || ""))}
+                handlePlay={() => playPauseSong(album)} // ✅ Use playPauseSong
               />
             ))
           ) : (
