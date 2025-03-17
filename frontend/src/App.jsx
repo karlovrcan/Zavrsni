@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AppProvider } from "./states/Content";
 import { AudioProvider } from "./states/AudioProvider"; // ✅ Import AudioProvider
+import AuthProvider from "./states/AuthContext"; // Auth context for login
 import Navbar from "./components/Navbar";
 import Home from "./components/Home/Home";
 import Search from "./components/Search/Search";
-import Login from "./components/Login/Login";
+import Login from "./components/Login/Login"; // ✅ Import Login
 import Signup from "./components/Signup/Signup";
 import ArtistCard from "./components/ArtistCard/ArtistCard";
 import AlbumCard from "./components/AlbumCard/AlbumCard";
@@ -59,18 +55,19 @@ const AppContent = () => {
 
   useEffect(() => {
     if (!accessToken) return;
-
-    // ✅ Prevent multiple script inserts
+  
+    let playerInstance; // <-- store the Spotify Player instance here
+  
     if (!window.Spotify) {
       const script = document.createElement("script");
       script.src = "https://sdk.scdn.co/spotify-player.js";
       script.async = true;
-      script.onload = () => initializePlayer(); // ✅ Initialize only after script loads
+      script.onload = initializePlayer;
       document.body.appendChild(script);
     } else {
       initializePlayer();
     }
-
+  
     function initializePlayer() {
       window.onSpotifyWebPlaybackSDKReady = () => {
         const player = new window.Spotify.Player({
@@ -78,29 +75,18 @@ const AppContent = () => {
           getOAuthToken: (cb) => cb(accessToken),
           volume: 0.8,
         });
-
+  
+        // Keep a reference to our player instance:
+        playerInstance = player;
+  
         player.addListener("ready", ({ device_id }) => {
           console.log("🎵 Spotify Web Player Ready. Device ID:", device_id);
           dispatch(setSpotifyDeviceId(device_id));
           setDeviceId(device_id);
         });
-
-        player.addListener("not_ready", ({ device_id }) => {
-          console.warn("⚠️ Device has gone offline:", device_id);
-        });
-
-        player.addListener("initialization_error", ({ message }) => {
-          console.error("❌ Initialization Error:", message);
-        });
-
-        player.addListener("authentication_error", ({ message }) => {
-          console.error("❌ Authentication Error:", message);
-        });
-
-        player.addListener("account_error", ({ message }) => {
-          console.error("❌ Account Error:", message);
-        });
-
+  
+        // ... the other event listeners ...
+  
         player.connect().then((success) => {
           if (success) {
             console.log("✅ Connected to Spotify Web Player.");
@@ -110,14 +96,16 @@ const AppContent = () => {
         });
       };
     }
-
+  
     return () => {
-      if (window.Spotify && window.Spotify.Player) {
+      // Clean up by disconnecting the actual instance
+      if (playerInstance) {
         console.log("🛑 Disconnecting Spotify Player...");
-        window.Spotify.Player.disconnect();
+        playerInstance.disconnect();
       }
     };
   }, [accessToken, dispatch]);
+  
 
   return (
     <>
@@ -137,7 +125,7 @@ const AppContent = () => {
         />
         <Route path="/artist/:id" element={<ArtistCard />} />
         <Route path="/album/:id" element={<AlbumCard />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login />} /> {/* Login Route */}
         <Route path="/signup" element={<Signup />} />
       </Routes>
       <Songbar /> {/* ✅ Ensure Songbar is always visible */}
@@ -147,15 +135,17 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AppProvider>
-      <AudioProvider>
-        {" "}
-        {/* ✅ Wrap the entire app in AudioProvider */}
-        <Router>
-          <AppContent />
-        </Router>
-      </AudioProvider>
-    </AppProvider>
+    <AuthProvider> {/* Wrap the app in AuthProvider */}
+      <AppProvider>
+        <AudioProvider>
+          {" "}
+          {/* ✅ Wrap the entire app in AudioProvider */}
+          <Router>
+            <AppContent />
+          </Router>
+        </AudioProvider>
+      </AppProvider>
+    </AuthProvider>
   );
 };
 

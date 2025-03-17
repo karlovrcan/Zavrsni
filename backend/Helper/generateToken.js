@@ -1,4 +1,3 @@
-//backend/Helper/generateToken.js
 import jwt from "jsonwebtoken";
 
 const generateToken = (userId) => {

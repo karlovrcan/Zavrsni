@@ -2,10 +2,11 @@ import express from "express";
 import axios from "axios";
 import querystring from "querystring";
 import dotenv from "dotenv";
-import spotifyRoutes from "./routes/spotify.js"; // ✅ Default import
-import cors from "cors"; // ✅ Import CORS at the top
-import userRoutes from "./routes/user.js"; // ✅ Import user routes
-import connectDB from "./db.js"; // ✅ Import database connection function
+import spotifyRoutes from "./routes/spotify.js";
+import cors from "cors"; 
+import userRoutes from "./routes/user.js"; 
+import connectDB from "./db.js"; 
+import playlistRoutes from "./routes/playlist.js";
 
 dotenv.config();
 
@@ -14,9 +15,11 @@ const PORT = process.env.PORT || 5001;
 connectDB();
 const { CLIENT_ID, CLIENT_SECRET, REDIRECT_URI } = process.env;
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json()); // ✅ Ensure JSON parsing
-app.use("/api/user", userRoutes); // ✅ Ensure the route is set correctly
-app.use("/api/spotify", spotifyRoutes); // ✅ Now `/api/spotify/login` works
+app.use(express.json()); 
+app.use("/api/user", userRoutes); 
+app.use("/api/spotify", spotifyRoutes); 
+app.use("/api/playlists", playlistRoutes);
+
 
 console.log("🔍 CLIENT_ID:", process.env.CLIENT_ID);
 console.log(

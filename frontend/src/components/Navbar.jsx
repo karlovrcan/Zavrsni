@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom"; // ✅ Import `useNavigate`
@@ -6,8 +6,10 @@ import { FaUser } from "react-icons/fa";
 import { GoHomeFill } from "react-icons/go";
 import logo from "../assets/logo.svg";
 import { userLogout } from "../states/Actors/userActors";
+import { AuthContext } from "../states/AuthContext";
 
 const Navbar = ({ onSearch }) => {
+  const { logout } = useContext(AuthContext);
   const { isAuthenticated } = useSelector((state) => state.account);
   const dispatch = useDispatch();
   const navigate = useNavigate(); // ✅ Initialize navigation hook
@@ -23,7 +25,8 @@ const Navbar = ({ onSearch }) => {
   };
 
   const logoutUser = () => {
-    localStorage.removeItem("token");
+    console.log("Navbar - Logging out...");
+    logout(); // ✅ Call AuthContext logout function
     dispatch(userLogout());
     setShowDropdown(false);
   };

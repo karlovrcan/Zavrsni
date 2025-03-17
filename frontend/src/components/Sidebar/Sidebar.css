@@ -2,8 +2,32 @@
   flex-grow: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-left: 10px;
 }
+
 .your_library::-webkit-scrollbar {
   width: 10px;
   background-color: grey;
+}
+
+.your_library a {
+  display: block;
+  font-size: 14px;
+  color: white;
+  padding: 8px 10px;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background 0.2s ease-in-out;
+}
+
+.your_library a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bg-green-500 {
+  background-color: #1db954;
+}
+
+.bg-green-600:hover {
+  background-color: #1ed760;
 }

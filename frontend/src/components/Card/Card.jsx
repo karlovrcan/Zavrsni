@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { IoIosPlay, IoIosPause } from "react-icons/io";
+import { SlOptions } from "react-icons/sl";
 import { useAudio } from "../../states/AudioProvider";
 import "./Card.css";
 
@@ -7,13 +8,36 @@ const truncateText = (text, length) => {
   return text.length > length ? text.substring(0, length) + "..." : text;
 };
 
-const Card = ({ song, type }) => {
+const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
+  // Guard against missing song prop
   if (!song) {
     console.error("Card component received an undefined song prop.");
     return null;
   }
 
-  const { currentSong, isPlaying, playPauseSong } = useAudio();
+  // Pull from AudioProvider: current track info + controls
+  const { currentSong, isPlaying, playPauseSong, togglePlayPause } = useAudio();
+
+  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState("");
+
+  // Called when user picks a playlist from dropdown
+  const handlePlaylistSelection = async () => {
+    if (!selectedPlaylist) return;
+    await handleAddSongToPlaylist(selectedPlaylist, song.id);
+    setShowPlaylistDropdown(false);
+  };
+
+  // Main play/pause logic
+  const handlePlayPauseClick = () => {
+    if (currentSong?.uri === song.uri) {
+      // Same track is currently loaded => Toggle pause/resume
+      togglePlayPause();
+    } else {
+      // Different track => start from 0
+      playPauseSong(song);
+    }
+  };
 
   return (
     <div className="card col-span-1 p-3 rounded-lg hover:bg-[#1db954] relative mb-2">
@@ -29,8 +53,9 @@ const Card = ({ song, type }) => {
           }`}
         />
 
+        {/* Show pause icon if this is the currently playing track, otherwise show play icon */}
         <button
-          onClick={() => playPauseSong(song)}
+          onClick={handlePlayPauseClick}
           className={`play_btn ${
             currentSong?.uri === song.uri && isPlaying ? "active" : ""
           }`}
@@ -43,7 +68,6 @@ const Card = ({ song, type }) => {
         </button>
       </div>
 
-      {/* Song title and artist */}
       <div className="mt-2 text-start">
         <h3 className="text-white font-semibold text-base mb-2">
           {truncateText(song.name, 30)}
@@ -54,6 +78,40 @@ const Card = ({ song, type }) => {
             .map((artist) => artist.name)
             .join(", ") + (song.artists.length > 2 ? "..." : "")}
         </p>
+
+        {/* Playlist dropdown trigger */}
+        <button
+          onClick={() => setShowPlaylistDropdown(!showPlaylistDropdown)}
+          className="absolute top-2 right-14 text-white"
+        >
+          <SlOptions className="text-2xl" />
+        </button>
+
+        {showPlaylistDropdown && (
+          <div className="absolute right-2 bg-[#242424] shadow-lg rounded-md mt-2 p-2 w-48">
+            <ul className="text-gray-200">
+              <li>
+                <select
+                  onChange={(e) => setSelectedPlaylist(e.target.value)}
+                  className="w-full bg-[#121212] text-white p-2 rounded-sm"
+                >
+                  <option value="">Select Playlist</option>
+                  {playlists?.map((playlist) => (
+                    <option key={playlist._id} value={playlist._id}>
+                      {playlist.name}
+                    </option>
+                  ))}
+                </select>
+              </li>
+              <li
+                onClick={handlePlaylistSelection}
+                className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
+              >
+                Add to Playlist
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
