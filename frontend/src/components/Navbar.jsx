@@ -19,11 +19,7 @@ const Navbar = ({ onSearch }) => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!query.trim()) return;
-
-    // ✅ Redirect to /search with the query as a URL parameter
     navigate(`/search?query=${encodeURIComponent(query)}`);
-    onSearch(query); // ✅ Trigger the search function in `App.jsx`
   };
 
   const logoutUser = () => {
@@ -49,14 +45,17 @@ const Navbar = ({ onSearch }) => {
 
           <div className="relative w-2/3">
             <form onSubmit={handleSearch}>
-              {" "}
-              {/* ✅ Form to handle search */}
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white-400 text-2xl" />
               <input
                 type="text"
                 placeholder="What do you want to play?"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  navigate(
+                    `/search?query=${encodeURIComponent(e.target.value)}`
+                  );
+                }}
                 className="w-full p-3 px-11 text-black rounded-full text-white tertiary_bg focus:outline-none font-normal"
               />
             </form>
@@ -68,7 +67,7 @@ const Navbar = ({ onSearch }) => {
           }`}
         >
           {!isAuthenticated ? (
-            <div className="flex">
+            <div className="flex mb-2">
               <Link
                 to={"/signup"}
                 className="rounded-full mt-3 px-8 text-base py-2 text-white font-semibold"

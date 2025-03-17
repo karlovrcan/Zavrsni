@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 
 const Sidebar = () => {
   return (
-    <div className="h-[calc(100vh-155px)] w-full flex flex-col ">
+    <div className="h-[calc(100vh-165px)] w-full flex flex-col mt-3">
       <div className="flex-grow h-full overflow-hidden">
         <div className="secondary_bg rounded-lg px-2 py-2 h-full flex flex-col">
           <div className="flex px-4 justify-between mb-4 items-center gap-4">

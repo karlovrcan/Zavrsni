@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { fetchRecommendedSongs } from "../api/spotifyService";
 
 const AudioContext = createContext();
 
@@ -17,34 +18,31 @@ export const AudioProvider = ({ children }) => {
   const [volume, setVolume] = useState(50);
   const [currTime, setCurrTime] = useState("00:00");
   const [songIndex, setSongIndex] = useState(0);
-  const [songs, setSongs] = useState([]); // Playlist or search results
-  const [recommendedSongs, setRecommendedSongs] = useState([]); // Recommended tracks
+  const [songs, setSongs] = useState([]);
+  const [recommendedSongs, setRecommendedSongs] = useState([]);
 
   const audioRef = useRef(new Audio());
   const intervalRef = useRef(null);
   const dispatch = useDispatch();
 
-  // ✅ Use `deviceId` from Redux (since it's handled in App.jsx)
+  // ✅ Get Access Token & Device ID from Redux
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const deviceId = useSelector((state) => state.spotify.deviceId);
 
   // ✅ Play/Pause Song
   const playPauseSong = async (song) => {
-    if (!song || !song.uri) {
+    if (!song || !song.uri || !song.id) {
       console.error("❌ Invalid song provided:", song);
       return;
     }
 
-    console.log(
-      `🎵 Playing: ${song.name} (ID: ${song.id}) on device: ${deviceId}`
-    );
+    console.log("🎵 Playing:", song.name, "| Track ID:", song.id);
 
-    // ✅ Ensure the song is set first before playing
     setCurrentSong(song);
     setIsPlaying(true);
 
     try {
-      const playRes = await fetch(
+      await fetch(
         `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
         {
           method: "PUT",
@@ -56,38 +54,35 @@ export const AudioProvider = ({ children }) => {
         }
       );
 
-      if (!playRes.ok) {
-        console.error(`⚠️ Failed to play song: ${playRes.status}`);
-        return;
-      }
-
-      // ✅ Fetch recommendations *only if the song is not in a playlist*
+      // ✅ Fetch recommendations only if the song is not in a playlist
       if (songs.length === 0) {
-        fetchRecommendedSongs(song.id);
+        console.log("📡 Fetching recommendations for:", song.id);
+        getRecommendedSongs(song.id);
       }
     } catch (error) {
       console.error("❌ Error playing song:", error);
     }
   };
 
-  // ✅ Toggle Play/Pause
-  const togglePlayPause = async () => {
-    if (!deviceId) return;
-
-    try {
-      const endpoint = isPlaying ? "pause" : "play";
-      await fetch(
-        `https://api.spotify.com/v1/me/player/${endpoint}?device_id=${deviceId}`,
-        {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-
-      setIsPlaying(!isPlaying);
-    } catch (error) {
-      console.error("❌ Error toggling playback:", error);
+  // ✅ Fetch Recommended Songs (Now using `spotifyService.js`)
+  const getRecommendedSongs = async (seedTrackId) => {
+    if (!accessToken) {
+      console.warn("⚠️ No Spotify access token available.");
+      return;
     }
+
+    if (!seedTrackId || seedTrackId.length !== 22) {
+      console.warn("⚠️ Invalid seed track ID:", seedTrackId);
+      return;
+    }
+
+    console.log("📡 Calling fetchRecommendedSongs with:", seedTrackId);
+
+    const recommendations = await fetchRecommendedSongs(
+      seedTrackId,
+      accessToken
+    );
+    setRecommendedSongs(recommendations);
   };
 
   // ✅ Next Song Logic
@@ -102,14 +97,10 @@ export const AudioProvider = ({ children }) => {
       setRecommendedSongs((prev) => prev.slice(1));
     } else if (currentSong && currentSong.id && recommendedSongs.length === 0) {
       console.log("🔄 Fetching new recommendations...");
-      await fetchRecommendedSongs(currentSong.id); // Fetch once only
-      return;
-    } else {
-      console.warn("⚠️ No songs or recommendations available.");
+      await getRecommendedSongs(currentSong.id);
       return;
     }
 
-    console.log("🎶 Next Song:", nextTrack?.name);
     playPauseSong(nextTrack);
   };
 
@@ -120,45 +111,6 @@ export const AudioProvider = ({ children }) => {
     const prevIndex = songIndex > 0 ? songIndex - 1 : 0;
     setSongIndex(prevIndex);
     playPauseSong(songs[prevIndex]);
-  };
-
-  // ✅ Fetch Recommended Songs
-  const fetchRecommendedSongs = async (seedTrackId) => {
-    if (!accessToken || !seedTrackId) {
-      console.warn("⚠️ No access token or seed track ID.");
-      return;
-    }
-
-    if (!currentSong || !currentSong.id) {
-      console.error("❌ No valid current song found for recommendations.");
-      return;
-    }
-
-    try {
-      console.log("📡 Fetching recommendations for:", seedTrackId);
-      const res = await fetch(
-        `https://api.spotify.com/v1/recommendations?seed_tracks=${seedTrackId}&limit=5`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-
-      if (!res.ok) {
-        console.error(`⚠️ Spotify API Error: ${res.status} ${res.statusText}`);
-        return;
-      }
-
-      const data = await res.json();
-      if (!data.tracks || data.tracks.length === 0) {
-        console.warn("⚠️ No recommendations found.");
-        return;
-      }
-
-      setRecommendedSongs(data.tracks);
-      console.log("🎵 Recommended Songs:", data.tracks);
-    } catch (error) {
-      console.error("❌ Error fetching recommended songs:", error);
-    }
   };
 
   // ✅ Update Progress Bar
@@ -211,6 +163,26 @@ export const AudioProvider = ({ children }) => {
     return `${minutes.toString().padStart(2, "0")}:${seconds
       .toString()
       .padStart(2, "0")}`;
+  };
+
+  // ✅ Toggle Play/Pause
+  const togglePlayPause = async () => {
+    if (!deviceId) return;
+
+    try {
+      const endpoint = isPlaying ? "pause" : "play";
+      await fetch(
+        `https://api.spotify.com/v1/me/player/${endpoint}?device_id=${deviceId}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error("❌ Error toggling playback:", error);
+    }
   };
 
   return (
