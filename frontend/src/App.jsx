@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AppProvider } from "./states/Content";
-import { AudioProvider } from "./states/AudioProvider"; // ✅ Import AudioProvider
-import AuthProvider from "./states/AuthContext"; // Auth context for login
+import { AudioProvider } from "./states/AudioProvider";
+import AuthProvider from "./states/AuthContext";
 import Navbar from "./components/Navbar";
 import Home from "./components/Home/Home";
 import Search from "./components/Search/Search";
-import Login from "./components/Login/Login"; // ✅ Import Login
+import Login from "./components/Login/Login";
 import Signup from "./components/Signup/Signup";
-import ArtistCard from "./components/ArtistCard/ArtistCard";
-import AlbumCard from "./components/AlbumCard/AlbumCard";
-import Songbar from "./components/MasterBar/SongBar"; // ✅ Ensure Songbar is included
+import Songbar from "./components/MasterBar/SongBar";
+import Playlist from "./components/Playlist/Playlist";
 import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
 import { fetchSongs } from "./api/spotifyService";
 
@@ -55,9 +59,9 @@ const AppContent = () => {
 
   useEffect(() => {
     if (!accessToken) return;
-  
-    let playerInstance; // <-- store the Spotify Player instance here
-  
+
+    let playerInstance;
+
     if (!window.Spotify) {
       const script = document.createElement("script");
       script.src = "https://sdk.scdn.co/spotify-player.js";
@@ -67,7 +71,7 @@ const AppContent = () => {
     } else {
       initializePlayer();
     }
-  
+
     function initializePlayer() {
       window.onSpotifyWebPlaybackSDKReady = () => {
         const player = new window.Spotify.Player({
@@ -75,37 +79,32 @@ const AppContent = () => {
           getOAuthToken: (cb) => cb(accessToken),
           volume: 0.8,
         });
-  
-        // Keep a reference to our player instance:
+
         playerInstance = player;
-  
+
         player.addListener("ready", ({ device_id }) => {
-          console.log("🎵 Spotify Web Player Ready. Device ID:", device_id);
+          console.log("Spotify Web Player Ready. Device ID:", device_id);
           dispatch(setSpotifyDeviceId(device_id));
           setDeviceId(device_id);
         });
-  
-        // ... the other event listeners ...
-  
+
         player.connect().then((success) => {
           if (success) {
-            console.log("✅ Connected to Spotify Web Player.");
+            console.log("Connected to Spotify Web Player.");
           } else {
-            console.error("❌ Failed to connect to Spotify Web Player.");
+            console.error("Failed to connect to Spotify Web Player.");
           }
         });
       };
     }
-  
+
     return () => {
-      // Clean up by disconnecting the actual instance
       if (playerInstance) {
-        console.log("🛑 Disconnecting Spotify Player...");
+        console.log("Disconnecting Spotify Player...");
         playerInstance.disconnect();
       }
     };
   }, [accessToken, dispatch]);
-  
 
   return (
     <>
@@ -123,19 +122,20 @@ const AppContent = () => {
             />
           }
         />
-        <Route path="/artist/:id" element={<ArtistCard />} />
-        <Route path="/album/:id" element={<AlbumCard />} />
-        <Route path="/login" element={<Login />} /> {/* Login Route */}
+        <Route path="/playlist/:id" element={<Playlist />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
       </Routes>
-      <Songbar /> {/* ✅ Ensure Songbar is always visible */}
+      <Songbar />
     </>
   );
 };
 
 const App = () => {
   return (
-    <AuthProvider> {/* Wrap the app in AuthProvider */}
+    <AuthProvider>
+      {" "}
+      {/* Wrap the app in AuthProvider */}
       <AppProvider>
         <AudioProvider>
           {" "}

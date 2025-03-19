@@ -28,7 +28,6 @@ console.log(
 );
 console.log("🔍 REDIRECT_URI:", process.env.REDIRECT_URI);
 
-// 🔹 Step 1: Redirect User to Spotify
 app.get("/login", (req, res) => {
   const scope = "user-read-playback-state user-modify-playback-state streaming";
   const authUrl = `https://accounts.spotify.com/authorize?${querystring.stringify(
@@ -44,7 +43,6 @@ app.get("/login", (req, res) => {
   res.redirect(authUrl);
 });
 
-// 🔹 Step 2: Spotify Redirects Back Here (Exchange Code for Token)
 app.get("/callback", async (req, res) => {
   console.log("🔍 Spotify Callback Hit!");
   const { code } = req.query;
@@ -84,8 +82,7 @@ app.get("/callback", async (req, res) => {
 
     console.log("✅ Successfully Authenticated! Access Token:", access_token);
 
-    // ✅ Redirect to frontend with the token
-    res.redirect(`http://localhost:5173/login?token=${access_token}`); // ✅ Send token to Login page
+    res.redirect(`http://localhost:5173/login?token=${access_token}`); 
   } catch (error) {
     console.error(
       "❌ Spotify Token Exchange Error:",

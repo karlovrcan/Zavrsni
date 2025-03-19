@@ -5,6 +5,7 @@ import SongBar from "../MasterBar/SongBar";
 import Card from "../Card/Card";
 import { useLocation } from "react-router-dom";
 import BrowsePage from "../Browse/Browse";
+import MiniCard from "../MiniCard/MiniCard";
 
 const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
   const { playPauseSong } = useAudio();
@@ -14,7 +15,7 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
 
   return (
     <Layout>
-      <div className="px-2 secondary_bg rounded-lg h-[calc(100vh-163px)]  overflow-auto custom-scrollbar">
+      <div className="px-2 secondary_bg rounded-lg h-[calc(100vh-155px)]  overflow-auto custom-scrollbar">
         {searchQuery === "" ? (
           <BrowsePage />
         ) : (
@@ -33,19 +34,28 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                   <Card
                     key={track.id}
                     song={{
-                      id: track.id,
+                      id: track.id || track.uri,
                       uri: track.uri,
                       name: track.name,
                       artists: track.artists,
                       albumCover: track.album?.images?.[0]?.url || "",
                     }}
-                    handlePlay={() => playPauseSong(track)}
+                    handlePlay={() =>
+                      playPauseSong({
+                        _id: track.id,
+                        uri: track.uri,
+                        name: track.name,
+                        artists: track.artists,
+                        albumCover: track.album?.images?.[0]?.url || "",
+                        duration_ms: track.duration_ms,
+                      })
+                    }
                   />
                 ))}
               </div>
-              <div className="ml-5 grid grid-cols-4 h-[60%] w-full px-3">
-                {songs.slice(1, 5).map((track) => (
-                  <Card
+              <div className="ml-5 block  h-full w-full px-3">
+                {songs.slice(1, 8).map((track) => (
+                  <MiniCard
                     key={track.id}
                     song={{
                       id: track.id,
@@ -54,7 +64,16 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                       artists: track.artists,
                       albumCover: track.album?.images?.[0]?.url || "",
                     }}
-                    handlePlay={() => playPauseSong(track)}
+                    handlePlay={() =>
+                      playPauseSong({
+                        _id: track.id,
+                        uri: track.uri,
+                        name: track.name,
+                        artists: track.artists,
+                        albumCover: track.album?.images?.[0]?.url || "",
+                        duration_ms: track.duration_ms,
+                      })
+                    }
                   />
                 ))}
               </div>
@@ -63,36 +82,37 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
               <>
                 <h2 className="text-2xl font-bold mt-6 mb-2 px-6">Playlists</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 px-3">
-                {playlists.slice(0, 5).map((playlist, index) => {
-  // If the entire item is null/undefined, skip or give a fallback
-  if (!playlist) {
-    return (
-      <div key={`null-playlist-${index}`} className="text-white">
-        No playlist data
-      </div>
-    );
-  }
+                  {playlists.slice(0, 5).map((playlist, index) => {
+                    if (!playlist) {
+                      return (
+                        <div
+                          key={`null-playlist-${index}`}
+                          className="text-white"
+                        >
+                          No playlist data
+                        </div>
+                      );
+                    }
 
-  // Use optional chaining and fallback strings so we never crash
-  return (
-    <Card
-      key={playlist.id ?? `fallback-key-${index}`}
-      song={{
-        id: playlist.id ?? `no-id-${index}`,
-        uri: playlist.uri ?? "",
-        name: playlist.name ?? "Unknown Playlist",
-        artists: [
-          {
-            name: playlist.owner?.display_name ?? "Unknown",
-          },
-        ],
-        albumCover: playlist.images?.[0]?.url ?? "",
-      }}
-      handlePlay={() => playPauseSong(playlist)}
-    />
-  );
-})}
-
+                    // Use optional chaining and fallback strings so we never crash
+                    return (
+                      <Card
+                        key={playlist.id ?? `fallback-key-${index}`}
+                        song={{
+                          id: playlist.id ?? `no-id-${index}`,
+                          uri: playlist.uri ?? "",
+                          name: playlist.name ?? "Unknown Playlist",
+                          artists: [
+                            {
+                              name: playlist.owner?.display_name ?? "Unknown",
+                            },
+                          ],
+                          albumCover: playlist.images?.[0]?.url ?? "",
+                        }}
+                        handlePlay={() => playPauseSong(playlist)}
+                      />
+                    );
+                  })}
                 </div>
               </>
             )}

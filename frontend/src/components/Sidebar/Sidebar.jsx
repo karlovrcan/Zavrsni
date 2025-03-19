@@ -2,9 +2,9 @@ import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../../states/AuthContext";
 import { FaPlus } from "react-icons/fa";
 import { BiLibrary } from "react-icons/bi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SlOptions } from "react-icons/sl";
-import Card from "../Card/Card";  // Import the Card component
+import Card from "../Card/Card";
 
 const Sidebar = () => {
   const { user, token } = useContext(AuthContext);
@@ -13,27 +13,21 @@ const Sidebar = () => {
   const [showInput, setShowInput] = useState(false);
   const [playlistName, setPlaylistName] = useState("");
   const [dropdownVisible, setDropdownVisible] = useState(null);
+  const [editingPlaylistId, setEditingPlaylistId] = useState(null);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user) fetchPlaylists(); // Fetch playlists when the user is logged in
-  }, [user]);
-
-  const fetchPlaylists = async () => {
-    try {
-      const response = await fetch("http://localhost:5001/api/playlists", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPlaylists(data.playlists); // Set playlists in state
-      }
-    } catch (error) {
-      console.error("Error fetching playlists:", error);
-    }
+  const startEditingPlaylist = (playlistId, currentName) => {
+    setEditingPlaylistId(playlistId);
+    setNewPlaylistName(currentName);
   };
 
+  useEffect(() => {
+    if (user) fetchPlaylists();
+  }, [user]);
+
   const handleCreatePlaylist = async () => {
-    if (!user || playlistName.trim() === "") return;
+    if (!playlistName.trim()) return;
 
     try {
       const response = await fetch("http://localhost:5001/api/playlists", {
@@ -44,6 +38,7 @@ const Sidebar = () => {
         },
         body: JSON.stringify({ name: playlistName }),
       });
+
       const data = await response.json();
       if (data.success) {
         setPlaylists([...playlists, data.playlist]);
@@ -56,53 +51,102 @@ const Sidebar = () => {
     }
   };
 
-  const handleDeletePlaylist = async (id) => {
-    if (window.confirm("Are you sure you want to delete this playlist?")) {
-      try {
-        const response = await fetch(`http://localhost:5001/api/playlists/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          setPlaylists(playlists.filter((playlist) => playlist._id !== id)); // Remove from state
-        }
-      } catch (error) {
-        console.error("Error deleting playlist:", error);
-      }
-    }
-  };
+  const handleRenamePlaylist = async (playlistId) => {
+    if (!newPlaylistName.trim()) return;
 
-  const handleRenamePlaylist = async (id) => {
-    const newName = prompt("Enter new name for the playlist:");
-    if (newName) {
-      try {
-        const response = await fetch(`http://localhost:5001/api/playlists/${id}`, {
+    try {
+      const response = await fetch(
+        `http://localhost:5001/api/playlists/${playlistId}`,
+        {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ name: newName }),
-        });
-        const data = await response.json();
-        if (data.success) {
-          setPlaylists(
-            playlists.map((playlist) =>
-              playlist._id === id ? { ...playlist, name: newName } : playlist
-            )
-          );
+          body: JSON.stringify({ name: newPlaylistName }),
         }
-      } catch (error) {
-        console.error("Error renaming playlist:", error);
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        setPlaylists(
+          playlists.map((playlist) =>
+            playlist._id === playlistId
+              ? { ...playlist, name: newPlaylistName }
+              : playlist
+          )
+        );
+        setEditingPlaylistId(null);
       }
+    } catch (error) {
+      console.error("Error renaming playlist:", error);
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId) => {
+    if (!window.confirm("Are you sure you want to delete this playlist?"))
+      return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5001/api/playlists/${playlistId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        setPlaylists(
+          playlists.filter((playlist) => playlist._id !== playlistId)
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting playlist:", error);
+    }
+  };
+
+  const toggleDropdown = (playlistId) => {
+    setDropdownVisible(dropdownVisible === playlistId ? null : playlistId);
+  };
+
+  const closeDropdown = () => {
+    setDropdownVisible(null);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".dropdown-menu")) {
+        closeDropdown();
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
+  const fetchPlaylists = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/playlists", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setPlaylists(data.playlists);
+      }
+    } catch (error) {
+      console.error("Error fetching playlists:", error);
     }
   };
 
   return (
-    <div className="h-[calc(100vh-165px)] w-full flex flex-col mt-3 ml-[5px]">
+    <div className="h-[calc(100vh-155px)] w-full flex flex-col ml-[5px]">
       <div className="flex-grow h-full overflow-hidden">
         <div className="secondary_bg rounded-lg px-2 py-2 h-full flex flex-col">
-          {/* Library Header & Create Button */}
           <div className="flex px-4 justify-between mb-4 items-center gap-4 relative">
             <div className="flex gap-2 items-center">
               <BiLibrary className="font-bold text-2xl" />
@@ -125,9 +169,8 @@ const Sidebar = () => {
             )}
           </div>
 
-          {/* Create Dropdown */}
           {showCreateDropdown && (
-            <div className="absolute top-10 right-0 w-48 bg-[#242424] shadow-lg rounded-md p-2">
+            <div className="absolute top-[65px] right-[-100px] w-48 bg-[#242424] shadow-lg rounded-md p-2">
               <ul className="text-gray-200">
                 <li
                   className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
@@ -139,7 +182,6 @@ const Sidebar = () => {
             </div>
           )}
 
-          {/* Create Playlist Input */}
           {showInput && (
             <div className="px-4">
               <input
@@ -158,7 +200,6 @@ const Sidebar = () => {
             </div>
           )}
 
-          {/* Playlists */}
           <div className="your_library flex flex-col gap-4 overflow-y-auto pr-2 h-full">
             {!user ? (
               <div className="tertiary_bg rounded-lg px-4 py-6">
@@ -169,45 +210,69 @@ const Sidebar = () => {
                 </button>
               </div>
             ) : (
-              playlists.map((playlist) => (
-                <div
-                  key={playlist._id}
-                  className="tertiary_bg rounded-lg px-4 py-3 hover:bg-gray-800 transition-colors duration-200 flex justify-between items-center"
-                >
-                  <Link
-                    to={`/playlist/${playlist._id}`}
-                    className="flex-grow text-white"
-                  >
-                    {playlist.name}
-                  </Link>
-                  <button
-                    onClick={() => setDropdownVisible(playlist._id)} // Toggle dropdown
-                    className="text-white rounded-full p-3 hover:bg-[#242424]"
-                  >
-                    <SlOptions />
-                  </button>
+              playlists.map((playlist) => {
+                const playlistImage =
+                  playlist?.albumCover ||
+                  "https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg";
 
-                  {/* Dropdown Menu */}
-                  {dropdownVisible === playlist._id && (
-                    <div className="absolute right-0 bg-[#242424] shadow-lg rounded-md mt-2 p-2 w-48">
-                      <ul className="text-gray-200">
-                        <li
-                          onClick={() => handleRenamePlaylist(playlist._id)}
-                          className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
-                        >
-                          Rename
-                        </li>
-                        <li
-                          onClick={() => handleDeletePlaylist(playlist._id)}
-                          className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
-                        >
-                          Delete
-                        </li>
-                      </ul>
+                return (
+                  <div
+                    key={playlist._id}
+                    className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                    onClick={() => navigate(`/playlist/${playlist._id}`)} // ✅ Redirect on click
+                  >
+                    <img
+                      src={playlistImage}
+                      alt="Playlist Cover"
+                      className="w-12 h-12 rounded-md object-cover"
+                    />
+                    <div className="flex-grow">
+                      <span className="text-white font-semibold truncate">
+                        {playlist.name}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {/* Options Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // ✅ Prevent navigation when clicking the options button
+                        toggleDropdown(playlist._id);
+                      }}
+                      className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
+                    >
+                      <SlOptions />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {dropdownVisible === playlist._id && (
+                      <div className="dropdown-menu absolute top-[4.5rem] right-0 bg-[#242424] shadow-lg rounded-sm p-1 w-32 text-gray-200 z-50">
+                        <ul>
+                          <li
+                            className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer transition duration-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditingPlaylist(playlist._id, playlist.name);
+                              closeDropdown();
+                            }}
+                          >
+                            Rename
+                          </li>
+                          <li
+                            className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer text-red-400 transition duration-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePlaylist(playlist._id);
+                              closeDropdown();
+                            }}
+                          >
+                            Delete
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

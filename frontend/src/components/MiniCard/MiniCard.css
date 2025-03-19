@@ -1,0 +1,40 @@
+.mini-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: #181818;
+  transition: background 0.2s ease-in-out;
+}
+
+.mini-card:hover {
+  background: #242424;
+}
+
+.mini-play_btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  width: 32px;
+  height: 32px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border: none;
+}
+
+.mini-card:hover .mini-play_btn {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.option-button {
+  opacity: 0;
+}
+
+.mini-card:hover .option-button {
+  opacity: 1;
+}

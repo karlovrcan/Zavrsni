@@ -21,26 +21,22 @@ const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState("");
 
-  // Called when user picks a playlist from dropdown
   const handlePlaylistSelection = async () => {
     if (!selectedPlaylist) return;
     await handleAddSongToPlaylist(selectedPlaylist, song.id);
     setShowPlaylistDropdown(false);
   };
 
-  // Main play/pause logic
   const handlePlayPauseClick = () => {
     if (currentSong?.uri === song.uri) {
-      // Same track is currently loaded => Toggle pause/resume
       togglePlayPause();
     } else {
-      // Different track => start from 0
       playPauseSong(song);
     }
   };
 
   return (
-    <div className="card col-span-1 p-3 rounded-lg hover:bg-[#1db954] relative mb-2">
+    <div className="card col-span-1 p-3 rounded-lg hover:bg-[#242424] relative mb-2">
       <div className="relative flex justify-center items-center">
         <img
           src={
@@ -53,7 +49,6 @@ const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
           }`}
         />
 
-        {/* Show pause icon if this is the currently playing track, otherwise show play icon */}
         <button
           onClick={handlePlayPauseClick}
           className={`play_btn ${
