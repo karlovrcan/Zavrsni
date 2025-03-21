@@ -31,18 +31,15 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist }) => {
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState("");
 
-  // We assume your code wants `_id` as the track ID
   const songId = song._id;
 
   const handlePlaylistSelection = async () => {
     if (!selectedPlaylist || !songId) return;
-    // We pass the chosen playlist plus the subdocument track ID
     await handleAddSongToPlaylist(selectedPlaylist, songId);
     setShowPlaylistDropdown(false);
   };
 
   const handlePlayPauseClick = () => {
-    // If the currently playing song has the same URI, toggle play/pause
     if (currentSong?.uri === song.uri) {
       togglePlayPause();
     } else {

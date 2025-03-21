@@ -1,0 +1,21 @@
+/* playlist.css */
+
+.playlist-bg {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow-y: auto;
+  position: relative;
+}
+
+.playlist-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(16px);
+  opacity: 0.4;
+}

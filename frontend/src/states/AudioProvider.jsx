@@ -14,33 +14,19 @@ const AudioContext = createContext();
 export const AudioProvider = ({ children }) => {
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  // Slider progress 0..100
   const [progress, setProgress] = useState(0);
-
-  // *** Track these as strings for the UI: "00:00"
   const [currTime, setCurrTime] = useState("00:00");
   const [duration, setDuration] = useState("00:00");
-
-  // *** Also track the raw duration in ms, so we can SEEK
   const [durationMs, setDurationMs] = useState(0);
 
   const [volume, setVolume] = useState(50);
   const [songIndex, setSongIndex] = useState(0);
   const [songs, setSongs] = useState([]);
   const [recommendedSongs, setRecommendedSongs] = useState([]);
-
-  // Redux
   const dispatch = useDispatch();
   const accessToken = useSelector((state) => state.spotify.accessToken);
-
-  // Store deviceId here (and optionally in Redux)
   const [deviceId, setDeviceId] = useState(null);
-
-  // Player ref for Web Playback SDK
   const playerRef = useRef(null);
-
-  // Helper: convert seconds -> "mm:ss"
   const formatTime = (timeInSeconds) => {
     if (!timeInSeconds || isNaN(timeInSeconds)) return "00:00";
     const minutes = Math.floor(timeInSeconds / 60);
@@ -50,9 +36,6 @@ export const AudioProvider = ({ children }) => {
       .padStart(2, "0")}`;
   };
 
-  // ───────────────────────────────────────────────────────────────────
-  //  1) Initialize the Spotify Player once
-  // ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!accessToken) return;
     if (playerRef.current) return; // Already set up
@@ -246,7 +229,10 @@ export const AudioProvider = ({ children }) => {
     if (!seedTrackId || seedTrackId.length !== 22) return;
 
     try {
-      const recommendations = await fetchRecommendedSongs(seedTrackId, accessToken);
+      const recommendations = await fetchRecommendedSongs(
+        seedTrackId,
+        accessToken
+      );
       setRecommendedSongs(recommendations);
     } catch (err) {
       console.error("❌ Error fetching recommended songs:", err);
@@ -302,7 +288,6 @@ export const AudioProvider = ({ children }) => {
         playPauseSong,
         togglePlayPause,
 
-        // Expose progress & times
         progress,
         currTime,
         duration,
@@ -312,6 +297,9 @@ export const AudioProvider = ({ children }) => {
         changeVolume,
         nextSong,
         prevSong,
+
+        setSongs,
+        setSongIndex,
       }}
     >
       {children}

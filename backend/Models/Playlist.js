@@ -8,6 +8,7 @@ const PlaylistSchema = new mongoose.Schema({
       _id: { type: String, required: true }, // We'll store the same string as track.id
       name: { type: String, required: true },
       artists: [{ name: String }],
+      uri: { type: String, required: true },
       albumCover: { type: String, required: true },
       duration: { type: Number, required: true },
     },

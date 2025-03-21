@@ -200,7 +200,7 @@ const Sidebar = () => {
             </div>
           )}
 
-          <div className="your_library flex flex-col gap-4 overflow-y-auto pr-2 h-full">
+          <div className="your_library flex flex-col gap-1 overflow-y-auto pr-2 h-full">
             {!user ? (
               <div className="tertiary_bg rounded-lg px-4 py-6">
                 <p className="font-bold">Create your first playlist.</p>
@@ -211,15 +211,15 @@ const Sidebar = () => {
               </div>
             ) : (
               playlists.map((playlist) => {
-                const playlistImage =
-                  playlist?.albumCover ||
-                  "https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg";
+                const playlistImage = playlist?.songs?.length
+                  ? playlist.songs[0].albumCover
+                  : "https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg";
 
                 return (
                   <div
                     key={playlist._id}
                     className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
-                    onClick={() => navigate(`/playlist/${playlist._id}`)} // ✅ Redirect on click
+                    onClick={() => navigate(`/playlist/${playlist._id}`)}
                   >
                     <img
                       src={playlistImage}

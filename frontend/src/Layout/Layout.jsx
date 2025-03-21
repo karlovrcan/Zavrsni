@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar/Sidebar";
 
 const Layout = ({ children }) => {
   return (
-    <div className="flex bg-black overflow-none">
+    <div className="flex overflow-none">
       <div className="w-[420px] fixed bg-black pr-4 custom-scrollbar">
         <Sidebar />
       </div>

@@ -42,8 +42,7 @@ const SongBar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isInPlaylist, setIsInPlaylist] = useState(false);
 
-  // We treat "currentSong.id" as the string that identifies the track.
-  // It's the same string we store in the Mongoose subdoc's "_id".
+  if (!currentSong) return null;
   const currentSongId = currentSong.id;
 
   useEffect(() => {
@@ -106,6 +105,7 @@ const SongBar = () => {
     const requestBody = {
       songId: currentSongId,
       name: currentSong.name,
+      uri: currentSong.uri,
       artists: currentSong.artists || [],
       albumCover: currentSong.albumCover || "",
       duration: currentSong.duration_ms || 0,
