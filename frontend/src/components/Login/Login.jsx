@@ -21,11 +21,29 @@ const Login = () => {
   const spotifyToken = searchParams.get("token");
 
   useEffect(() => {
+    const verifySpotifyToken = async () => {
+      try {
+        const res = await fetch("http://localhost:5001/api/spotify/me", {
+          headers: {
+            Authorization: `Bearer ${spotifyToken}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Invalid Spotify token");
+
+        const data = await res.json();
+        console.log("✅ Spotify user data:", data);
+        toast.success(`Welcome, ${data.display_name || "Spotify user"}!`);
+      } catch (err) {
+        console.error("❌ Spotify token verification failed:", err);
+        toast.error("Spotify token is invalid or missing scopes.");
+      }
+    };
+
     if (spotifyToken) {
-      console.log("🔍 Received Spotify Token:", spotifyToken);
       sessionStorage.setItem("spotify_access_token", spotifyToken);
       dispatch(handleSpotifyCallback(spotifyToken));
-      toast.success("Spotify login successful!");
+      verifySpotifyToken();
       navigate("/");
     }
   }, [spotifyToken, dispatch, navigate]);
@@ -117,8 +135,7 @@ const Login = () => {
           <button
             type="button"
             onClick={() =>
-              (window.location.href =
-                "http://localhost:5001/api/spotify/login")
+              (window.location.href = "http://localhost:5001/api/spotify/login")
             }
             className="w-full mt-4 bg-[#1db954] font-bold text-black py-4 rounded-full hover:scale-105 transition-all duration-100"
           >

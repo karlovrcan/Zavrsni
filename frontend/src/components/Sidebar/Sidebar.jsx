@@ -170,7 +170,7 @@ const Sidebar = () => {
           </div>
 
           {showCreateDropdown && (
-            <div className="absolute top-[65px] right-[-100px] w-48 bg-[#242424] shadow-lg rounded-md p-2">
+            <div className="absolute top-[65px] right-3 w-48 bg-[#242424] shadow-lg rounded-md p-2 z-50">
               <ul className="text-gray-200">
                 <li
                   className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
@@ -226,13 +226,12 @@ const Sidebar = () => {
                       alt="Playlist Cover"
                       className="w-12 h-12 rounded-md object-cover"
                     />
-                    <div className="flex-grow">
-                      <span className="text-white font-semibold truncate">
+                    <div className="flex-grow overflow-hidden">
+                      <span className="text-white text-sm font-normal truncate">
                         {playlist.name}
                       </span>
                     </div>
 
-                    {/* Options Button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // ✅ Prevent navigation when clicking the options button
@@ -243,7 +242,6 @@ const Sidebar = () => {
                       <SlOptions />
                     </button>
 
-                    {/* Dropdown Menu */}
                     {dropdownVisible === playlist._id && (
                       <div className="dropdown-menu absolute top-[4.5rem] right-0 bg-[#242424] shadow-lg rounded-sm p-1 w-32 text-gray-200 z-50">
                         <ul>

@@ -23,19 +23,14 @@ router.get("/login", (req, res) => {
   res.redirect(authUrl);
 });
 
-// 🔹 Spotify Callback: Exchange Code for Token
 router.get("/callback", async (req, res) => {
-  console.log("🔍 Spotify Callback Hit!");
   const { code } = req.query;
 
   if (!code) {
-    console.error("❌ Spotify Callback Error: Missing authorization code");
     return res.status(400).json({ message: "Authorization code missing" });
   }
 
   try {
-    console.log("🔍 Received Authorization Code:", code);
-
     const tokenRequestData = querystring.stringify({
       code: code,
       redirect_uri: process.env.REDIRECT_URI,
@@ -59,30 +54,51 @@ router.get("/callback", async (req, res) => {
       }
     );
 
-    console.log("🔍 Full Spotify API Response:", response.data);
-
     const { access_token } = response.data;
 
     if (!access_token) {
-      console.error("❌ Spotify did not return an access token");
       return res
         .status(500)
         .json({ message: "Spotify token missing in response" });
     }
 
-    console.log("✅ Successfully Authenticated! Access Token:", access_token);
-    res.json({ access_token });
+    const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
+    res.redirect(`${frontendURL}/login?token=${access_token}`);
   } catch (error) {
     console.error(
-      "❌ Spotify Token Exchange Error:",
-      error.response ? error.response.data : error
+      "Spotify Token Exchange Error:",
+      error.response?.data || error
     );
     res.status(500).json({
       message: "Failed to get access token",
-      error: error.response ? error.response.data : error.message,
+      error: error.response?.data || error.message,
     });
   }
 });
 
-// 🔹 Use `export default router`
+// 🔹 New Route: Proxy Spotify /me request through your backend
+router.get("/me", async (req, res) => {
+  const token = req.header("Authorization")?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Missing access token" });
+  }
+
+  try {
+    const response = await axios.get("https://api.spotify.com/v1/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error(
+      "❌ Failed to fetch Spotify /me:",
+      error.response?.data || error.message
+    );
+    res.status(500).json({
+      message: "Failed to fetch Spotify user info",
+      error: error.response?.data || error.message,
+    });
+  }
+});
+
 export default router;

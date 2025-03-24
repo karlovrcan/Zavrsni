@@ -103,7 +103,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
 router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
   try {
     const { playlistId } = req.params;
-    const { songId, name, uri, artists, albumCover, duration } = req.body;
+    const { songId, name, uri, artists, albumCover, duration_ms } = req.body;
 
     if (!songId || !name) {
       return res
@@ -132,7 +132,7 @@ router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
       uri,
       artists,
       albumCover,
-      duration,
+      duration_ms,
     });
     await playlist.save();
 

@@ -26,24 +26,20 @@ const SongBar = () => {
     progress,
     changeProgress,
     currTime,
-    duration,
+    duration_ms,
     changeVolume,
     volume,
     nextSong,
     prevSong,
   } = useAudio();
 
-  // If no song is selected, render nothing
-  if (!currentSong) return null;
+  const disabled = !currentSong;
+  const currentSongId = currentSong?.id;
 
   const { user, token } = useContext(AuthContext);
-
   const [playlists, setPlaylists] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isInPlaylist, setIsInPlaylist] = useState(false);
-
-  if (!currentSong) return null;
-  const currentSongId = currentSong.id;
 
   useEffect(() => {
     if (user) {
@@ -51,7 +47,6 @@ const SongBar = () => {
     }
   }, [user, currentSong]);
 
-  // Fetch the user's playlists from /api/playlists
   const fetchPlaylists = async () => {
     try {
       const response = await fetch("http://localhost:5001/api/playlists", {
@@ -68,47 +63,39 @@ const SongBar = () => {
     }
   };
 
-  // See if "currentSongId" is already in any user playlist
   const checkIfSongInPlaylist = (allPlaylists) => {
     if (!currentSongId) return;
-
-    // Because your subdoc uses "_id" in the schema, we must check s._id
     const songExists = allPlaylists.some((pl) =>
       pl.songs.some((s) => s._id === currentSongId)
     );
     setIsInPlaylist(songExists);
   };
 
-  // Toggle add/remove the currentSong to/from the chosen playlist
   const togglePlaylistSong = async (playlistId) => {
     if (!currentSongId) {
       alert("Song id is missing from currentSong!");
       return;
     }
 
-    // Find the playlist object with matching "_id"
     const playlist = playlists.find((pl) => pl._id === playlistId);
     if (!playlist) {
       console.error("Could not find playlist with _id =", playlistId);
       return;
     }
 
-    // If the track is found inside "pl.songs", it means we want to remove it
     const isSongInPlaylist = playlist.songs.some(
       (s) => s._id === currentSongId
     );
 
-    // Choose the correct endpoint
     const endpoint = isSongInPlaylist ? "remove-song" : "add-song";
 
-    // The body must match what your playlist schema expects
     const requestBody = {
       songId: currentSongId,
       name: currentSong.name,
       uri: currentSong.uri,
       artists: currentSong.artists || [],
       albumCover: currentSong.albumCover || "",
-      duration: currentSong.duration_ms || 0,
+      duration_ms: currentSong.duration_ms || 0,
     };
 
     try {
@@ -126,7 +113,6 @@ const SongBar = () => {
 
       const data = await response.json();
       if (data.success) {
-        // If it worked, refresh the playlists so we see updated songs
         fetchPlaylists();
       } else {
         alert(data.message);
@@ -137,29 +123,32 @@ const SongBar = () => {
   };
 
   return (
-    <div className="w-full fixed bottom-0 left-0 h-[90px] bg-black flex justify-between items-center px-4">
-      {/* Left: cover + title + artist + playlist dropdown */}
+    <div className="w-full fixed bottom-0 left-0 h-[90px] bg-black flex justify-between items-center px-4 z-50">
+      {/* Left: Cover + Info + Add/Remove */}
       <div className="flex items-center gap-4 w-[30%] min-w-[250px]">
         <img
           src={
-            currentSong.albumCover ||
+            currentSong?.albumCover ||
             "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
           }
           alt="Song Cover"
-          className="h-14 w-14 rounded-md"
+          className="h-14 w-14 rounded-md object-cover"
         />
         <div className="flex flex-col text-sm font-normal">
-          <p className="truncate w-[150px]">
-            {currentSong.name || "Unknown Track"}
+          <p className="truncate w-[150px] text-white font-semibold">
+            {currentSong?.name || ""}
           </p>
           <p className="text-xs text-gray-400 truncate">
-            {(currentSong.artists || []).map((a) => a.name).join(", ")}
+            {currentSong?.artists?.map((a) => a.name).join(", ") || ""}
           </p>
         </div>
         <div className="relative">
           <button
-            className="text-white px-3 py-1 rounded-md"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className={`text-white px-3 py-1 rounded-md ${
+              disabled ? "opacity-30 cursor-not-allowed" : ""
+            }`}
+            onClick={() => !disabled && setDropdownOpen(!dropdownOpen)}
+            disabled={disabled}
           >
             {isInPlaylist ? (
               <CiCircleMinus className="text-white text-2xl transform hover:scale-110" />
@@ -168,15 +157,15 @@ const SongBar = () => {
             )}
           </button>
 
-          {dropdownOpen && (
-            <div className="absolute bottom-full mb-2 right-0 bg-black shadow-md rounded-md w-40 p-2">
+          {!disabled && dropdownOpen && (
+            <div className="absolute bottom-full mb-2 right-0 bg-black shadow-md rounded-md w-40 p-2 z-50">
               {playlists.length > 0 ? (
                 playlists.map((pl) => (
                   <button
-                    key={pl._id} // use pl._id for the playlist's unique key
+                    key={pl._id}
                     className="block w-full text-left text-white px-2 py-1 hover:bg-gray-800"
                     onClick={() => {
-                      togglePlaylistSong(pl._id); // pass pl._id to the toggler
+                      togglePlaylistSong(pl._id);
                       setDropdownOpen(false);
                     }}
                   >
@@ -196,58 +185,81 @@ const SongBar = () => {
       {/* Middle: Playback controls */}
       <div className="flex flex-col items-center w-[40%] min-w-[300px]">
         <div className="flex justify-center gap-5 items-center mt-1">
-          <LuShuffle className="text-lg cursor-pointer" />
+          <LuShuffle
+            className={`text-lg ${
+              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
+          />
           <IoIosSkipBackward
-            onClick={prevSong}
-            className="text-2xl cursor-pointer"
+            onClick={() => !disabled && prevSong()}
+            className={`text-2xl ${
+              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
           />
           {isPlaying ? (
             <IoPauseCircleSharp
-              className="text-white text-[40px] cursor-pointer"
-              onClick={togglePlayPause}
+              className={`text-white text-[40px] ${
+                disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+              }`}
+              onClick={() => !disabled && togglePlayPause()}
             />
           ) : (
             <IoPlayCircleSharp
-              className="text-white text-[40px] cursor-pointer"
-              onClick={() => playPauseSong(currentSong)}
+              className={`text-white text-[40px] ${
+                disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+              }`}
+              onClick={() => !disabled && playPauseSong(currentSong)}
             />
           )}
           <IoIosSkipForward
-            onClick={nextSong}
-            className="text-2xl cursor-pointer"
+            onClick={() => !disabled && nextSong()}
+            className={`text-2xl ${
+              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
           />
-          <LuRepeat2 className="text-lg cursor-pointer" />
+          <LuRepeat2
+            className={`text-lg ${
+              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
+          />
         </div>
 
-        {/* Progress bar + times */}
+        {/* Progress */}
         <div className="flex items-center gap-3 w-full px-4 mt-2 mb-1">
           <span className="text-xs text-gray-400 w-8 text-right">
-            {currTime}
+            {disabled ? "0:00" : currTime}
           </span>
           <input
             type="range"
             min={0}
             max={100}
+            disabled={disabled}
             value={isNaN(progress) ? 0 : progress}
             onChange={(e) => changeProgress(Number(e.target.value))}
-            className="w-full cursor-pointer"
+            className={`w-full ${
+              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
           />
           <span className="text-xs text-gray-400 w-8 text-right">
-            {duration}
+            {disabled ? "0:00" : duration_ms}
           </span>
         </div>
       </div>
 
-      {/* Right: volume + queue icons */}
-      <div className="flex items-center justify-end w-[30%] min-w-[250px] gap-4">
-        <AiOutlinePlaySquare className="text-xl" />
-        <HiOutlineQueueList className="text-xl" />
+      {/* Right: Volume + Icons */}
+      <div className="flex items-center justify-end w-[30%] min-w-[250px] gap-4 text-white">
+        <AiOutlinePlaySquare
+          className={`text-xl ${disabled ? "opacity-30" : ""}`}
+        />
+        <HiOutlineQueueList
+          className={`text-xl ${disabled ? "opacity-30" : ""}`}
+        />
         {volume > 50 ? (
-          <LuVolume2 className="text-xl" />
+          <LuVolume2 className={`text-xl ${disabled ? "opacity-30" : ""}`} />
         ) : volume > 0 ? (
-          <LuVolume1 className="text-xl" />
+          <LuVolume1 className={`text-xl ${disabled ? "opacity-30" : ""}`} />
         ) : (
-          <LuVolume className="text-xl" />
+          <LuVolume className={`text-xl ${disabled ? "opacity-30" : ""}`} />
         )}
         <input
           type="range"
@@ -255,9 +267,14 @@ const SongBar = () => {
           max={100}
           value={volume}
           onChange={changeVolume}
-          className="w-24 cursor-pointer"
+          disabled={disabled}
+          className={`w-24 ${
+            disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+          }`}
         />
-        <TbArrowsDiagonal className="text-xl" />
+        <TbArrowsDiagonal
+          className={`text-xl ${disabled ? "opacity-30" : ""}`}
+        />
       </div>
     </div>
   );

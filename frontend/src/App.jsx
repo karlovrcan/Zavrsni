@@ -16,6 +16,10 @@ import Login from "./components/Login/Login";
 import Signup from "./components/Signup/Signup";
 import Songbar from "./components/MasterBar/SongBar";
 import Playlist from "./components/Playlist/Playlist";
+import SpotifyPlaylist from "./components/Playlist/SpotifyPlaylist";
+
+<Route path="/spotify-playlist/:id" element={<SpotifyPlaylist />} />;
+
 import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
 import { fetchSongs } from "./api/spotifyService";
 
@@ -125,6 +129,7 @@ const AppContent = () => {
         <Route path="/playlist/:id" element={<Playlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/spotify-playlist/:id" element={<SpotifyPlaylist />} />
       </Routes>
       <Songbar />
     </>
@@ -134,12 +139,8 @@ const AppContent = () => {
 const App = () => {
   return (
     <AuthProvider>
-      {" "}
-      {/* Wrap the app in AuthProvider */}
       <AppProvider>
         <AudioProvider>
-          {" "}
-          {/* ✅ Wrap the entire app in AudioProvider */}
           <Router>
             <AppContent />
           </Router>

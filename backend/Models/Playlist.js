@@ -5,12 +5,12 @@ const PlaylistSchema = new mongoose.Schema({
   name: { type: String, required: true },
   songs: [
     {
-      _id: { type: String, required: true }, // We'll store the same string as track.id
+      _id: { type: String, required: true },
       name: { type: String, required: true },
       artists: [{ name: String }],
       uri: { type: String, required: true },
       albumCover: { type: String, required: true },
-      duration: { type: Number, required: true },
+      duration_ms: { type: Number, required: true },
     },
   ],
 

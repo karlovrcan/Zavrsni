@@ -3,7 +3,7 @@ import { useAudio } from "../../states/AudioProvider";
 import Layout from "../../Layout/Layout";
 import SongBar from "../MasterBar/SongBar";
 import Card from "../Card/Card";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import BrowsePage from "../Browse/Browse";
 import MiniCard from "../MiniCard/MiniCard";
 
@@ -96,21 +96,26 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
 
                     // Use optional chaining and fallback strings so we never crash
                     return (
-                      <Card
-                        key={playlist.id ?? `fallback-key-${index}`}
-                        song={{
-                          id: playlist.id ?? `no-id-${index}`,
-                          uri: playlist.uri ?? "",
-                          name: playlist.name ?? "Unknown Playlist",
-                          artists: [
-                            {
-                              name: playlist.owner?.display_name ?? "Unknown",
-                            },
-                          ],
-                          albumCover: playlist.images?.[0]?.url ?? "",
-                        }}
-                        handlePlay={() => playPauseSong(playlist)}
-                      />
+                      <Link
+                        to={`/spotify-playlist/${playlist.id}`}
+                        key={playlist.id}
+                      >
+                        <Card
+                          key={playlist.id ?? `fallback-key-${index}`}
+                          song={{
+                            id: playlist.id ?? `no-id-${index}`,
+                            uri: playlist.uri ?? "",
+                            name: playlist.name ?? "Unknown Playlist",
+                            artists: [
+                              {
+                                name: playlist.owner?.display_name ?? "Unknown",
+                              },
+                            ],
+                            albumCover: playlist.images?.[0]?.url ?? "",
+                          }}
+                          handlePlay={() => playPauseSong(playlist)}
+                        />
+                      </Link>
                     );
                   })}
                 </div>

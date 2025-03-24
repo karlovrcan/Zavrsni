@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchRecommendedSongs } from "../api/spotifyService";
-import { setSpotifyDeviceId } from "../states/Actions/SpotifyActions"; // if you still use Redux for deviceId
+import { setSpotifyDeviceId } from "../states/Actions/SpotifyActions";
 
 const AudioContext = createContext();
 
@@ -98,6 +98,7 @@ export const AudioProvider = ({ children }) => {
             name: track.name,
             albumCover: track.album.images?.[0]?.url || "",
             artists: track.artists,
+            duration_ms: track.duration_ms || duration,
           });
         });
 
@@ -124,11 +125,36 @@ export const AudioProvider = ({ children }) => {
   // ───────────────────────────────────────────────────────────────────
   //  2) Poll getCurrentState() while playing => update currTime
   // ───────────────────────────────────────────────────────────────────
+  const nextSong = async () => {
+    let nextTrack = null;
+
+    if (songs.length > 0 && songIndex < songs.length - 1) {
+      nextTrack = songs[songIndex + 1];
+      setSongIndex(songIndex + 1);
+    } else if (recommendedSongs.length > 0) {
+      nextTrack = recommendedSongs[0];
+      setRecommendedSongs((prev) => prev.slice(1));
+    } else if (currentSong?.id && recommendedSongs.length === 0) {
+      console.log("🔄 Fetching new recommendations...");
+      await getRecommendedSongs(currentSong.id);
+      return;
+    }
+
+    if (nextTrack) playPauseSong(nextTrack);
+  };
+
+  const prevSong = () => {
+    if (songs.length === 0) return;
+    const prevIndex = songIndex > 0 ? songIndex - 1 : 0;
+    setSongIndex(prevIndex);
+    if (songs[prevIndex]) playPauseSong(songs[prevIndex]);
+  };
   useEffect(() => {
     let intervalId = null;
 
     if (isPlaying && playerRef.current) {
       intervalId = setInterval(() => {
+        if (!playerRef.current) return;
         playerRef.current
           .getCurrentState()
           .then((state) => {
@@ -143,6 +169,9 @@ export const AudioProvider = ({ children }) => {
             // Convert ms -> seconds -> "mm:ss"
             setCurrTime(formatTime(position / 1000));
             setDuration(formatTime(duration / 1000));
+            if (!paused && duration - position < 1000) {
+              nextSong();
+            }
           })
           .catch((err) => console.error("Error polling getCurrentState:", err));
       }, 1000);
@@ -152,7 +181,7 @@ export const AudioProvider = ({ children }) => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isPlaying]);
+  }, [isPlaying, nextSong]);
 
   // ───────────────────────────────────────────────────────────────────
   //  3) Controls
@@ -237,32 +266,6 @@ export const AudioProvider = ({ children }) => {
     } catch (err) {
       console.error("❌ Error fetching recommended songs:", err);
     }
-  };
-
-  // Next/Prev
-  const nextSong = async () => {
-    let nextTrack = null;
-
-    if (songs.length > 0 && songIndex < songs.length - 1) {
-      nextTrack = songs[songIndex + 1];
-      setSongIndex(songIndex + 1);
-    } else if (recommendedSongs.length > 0) {
-      nextTrack = recommendedSongs[0];
-      setRecommendedSongs((prev) => prev.slice(1));
-    } else if (currentSong?.id && recommendedSongs.length === 0) {
-      console.log("🔄 Fetching new recommendations...");
-      await getRecommendedSongs(currentSong.id);
-      return;
-    }
-
-    if (nextTrack) playPauseSong(nextTrack);
-  };
-
-  const prevSong = () => {
-    if (songs.length === 0) return;
-    const prevIndex = songIndex > 0 ? songIndex - 1 : 0;
-    setSongIndex(prevIndex);
-    if (songs[prevIndex]) playPauseSong(songs[prevIndex]);
   };
 
   // Volume

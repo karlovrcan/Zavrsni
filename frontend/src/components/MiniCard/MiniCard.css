@@ -4,12 +4,12 @@
   align-items: center;
   padding: 12px;
   border-radius: 8px;
-  background: #181818;
+  background: rgba(0, 0, 0, 0.3);
   transition: background 0.2s ease-in-out;
 }
 
 .mini-card:hover {
-  background: #242424;
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .mini-play_btn {

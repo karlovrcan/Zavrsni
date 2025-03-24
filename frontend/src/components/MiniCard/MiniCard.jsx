@@ -21,7 +21,7 @@ const formatDuration = (ms) => {
  * @param {array} playlists - List of user’s playlists to choose from
  * @param {function} handleAddSongToPlaylist - (playlistId, songId) => ...
  */
-const MiniCard = ({ song, playlists, handleAddSongToPlaylist }) => {
+const MiniCard = ({ song, playlists, handleAddSongToPlaylist, onClick }) => {
   if (!song) {
     console.error("MiniCard component received an undefined song prop.");
     return null;
@@ -48,7 +48,10 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist }) => {
   };
 
   return (
-    <div className="mini-card flex items-center justify-between p-2 secondary_bg hover:bg-[#242424] rounded-lg cursor-pointer">
+    <div
+      className="mini-card flex items-center justify-between p-2  rounded-sm cursor-pointer"
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3">
         <div className="relative w-12 h-12">
           <img
@@ -97,11 +100,11 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist }) => {
           onClick={() => setShowPlaylistDropdown(!showPlaylistDropdown)}
           className="text-white"
         >
-          <SlOptions className="text-xl option-button transform transition duration-200 hover:scale-110" />
+          <SlOptions className="text-xl option-button transform transition duration-200 hover:scale-110 mx-3" />
         </button>
 
         {showPlaylistDropdown && (
-          <div className="absolute right-0 bg-[#242424] shadow-lg rounded-md mt-2 p-2 w-48">
+          <div className="absolute right-0  shadow-lg rounded-md mt-2 p-2 w-48">
             <ul className="text-gray-200">
               <li>
                 <select

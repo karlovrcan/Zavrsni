@@ -14,12 +14,10 @@
 }
 
 .card:hover {
-  background: #1db954; /* Spotify Green */
   cursor: pointer;
   transition: all 0.2s ease-in;
 }
 
-/* Initially hidden Play Button */
 .play_btn {
   display: flex;
   align-items: center;
@@ -37,23 +35,15 @@
   border: none;
 }
 
-/* Show button only on hover */
 .card:hover .play_btn {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* Active Play Button (Pause Icon) */
-.play_btn.active {
-  background-color: #1db954; /* Spotify Green */
-}
-
-/* Change button color on hover */
 .play_btn:hover {
-  background-color: #17a747; /* Darker Spotify Green */
+  background-color: #17a747;
 }
 
-/* On click, make button slightly bigger */
 .play_btn:active {
   transform: translate(-50%, -50%) scale(1.2);
 }

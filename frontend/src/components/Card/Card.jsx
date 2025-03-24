@@ -56,7 +56,7 @@ const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
           }`}
         >
           {currentSong?.uri === song.uri && isPlaying ? (
-            <c className="text-white text-3xl" />
+            <IoIosPause className="text-white text-3xl" />
           ) : (
             <IoIosPlay className="text-white text-3xl" />
           )}
