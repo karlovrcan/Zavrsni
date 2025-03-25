@@ -9,6 +9,7 @@ import connectDB from "./db.js";
 import playlistRoutes from "./routes/playlist.js";
 import followedArtistRoutes from "./routes/follow.js";
 import albumRoutes from "./routes/album.js";
+import spotifyPlaylistRoutes from "./routes/spotifyPlaylist.js";
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use("/api/spotify", spotifyRoutes);
 app.use("/api/playlists", playlistRoutes);
 app.use("/api/followed-artists", followedArtistRoutes);
 app.use("/api/albums", albumRoutes);
+app.use("/api/spotify-playlist", spotifyPlaylistRoutes);
 
 console.log("🔍 CLIENT_ID:", process.env.CLIENT_ID);
 console.log(

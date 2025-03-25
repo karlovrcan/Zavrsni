@@ -9,6 +9,8 @@ import Card from "../Card/Card";
 const Sidebar = () => {
   const { user, token } = useContext(AuthContext);
   const [playlists, setPlaylists] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [playlistName, setPlaylistName] = useState("");
@@ -24,6 +26,8 @@ const Sidebar = () => {
 
   useEffect(() => {
     if (user) fetchPlaylists();
+    fetchAlbums();
+    fetchSpotifyPlaylists();
   }, [user]);
 
   const handleCreatePlaylist = async () => {
@@ -109,6 +113,28 @@ const Sidebar = () => {
     }
   };
 
+  const handleDeleteAlbum = async (albumId) => {
+    if (!window.confirm("Are you sure you want to remove this album?")) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5001/api/albums/${albumId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setAlbums(albums.filter((album) => album._id !== albumId));
+      }
+    } catch (error) {
+      console.error("Error deleting album:", error);
+    }
+  };
+
   const toggleDropdown = (playlistId) => {
     setDropdownVisible(dropdownVisible === playlistId ? null : playlistId);
   };
@@ -140,6 +166,63 @@ const Sidebar = () => {
       }
     } catch (error) {
       console.error("Error fetching playlists:", error);
+    }
+  };
+
+  const fetchAlbums = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/albums", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAlbums(data.albums);
+      }
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+    }
+  };
+
+  const fetchSpotifyPlaylists = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:5001/api/spotify-playlist",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setSpotifyPlaylists(data.playlists);
+      }
+    } catch (error) {
+      console.error("Error fetching Spotify playlists:", error);
+    }
+  };
+
+  const handleDeleteSpotifyPlaylist = async (playlistId) => {
+    if (!window.confirm("Remove this Spotify playlist from your sidebar?"))
+      return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5001/api/spotify-playlist/${playlistId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        setSpotifyPlaylists(
+          spotifyPlaylists.filter((pl) => pl._id !== playlistId)
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting Spotify playlist:", error);
     }
   };
 
@@ -210,67 +293,158 @@ const Sidebar = () => {
                 </button>
               </div>
             ) : (
-              playlists.map((playlist) => {
-                const playlistImage = playlist?.songs?.length
-                  ? playlist.songs[0].albumCover
-                  : "https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg";
-
-                return (
-                  <div
-                    key={playlist._id}
-                    className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
-                    onClick={() => navigate(`/playlist/${playlist._id}`)}
-                  >
-                    <img
-                      src={playlistImage}
-                      alt="Playlist Cover"
-                      className="w-12 h-12 rounded-md object-cover"
-                    />
-                    <div className="flex-grow overflow-hidden">
-                      <span className="text-white text-sm font-normal truncate">
-                        {playlist.name}
-                      </span>
+              <>
+                <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                  Saved Playlists
+                </div>
+                {/* Playlists section */}
+                {spotifyPlaylists.length > 0 && (
+                  <>
+                    <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                      Spotify Playlists
                     </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // ✅ Prevent navigation when clicking the options button
-                        toggleDropdown(playlist._id);
-                      }}
-                      className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
-                    >
-                      <SlOptions />
-                    </button>
-
-                    {dropdownVisible === playlist._id && (
-                      <div className="dropdown-menu absolute top-[4.5rem] right-0 bg-[#242424] shadow-lg rounded-sm p-1 w-32 text-gray-200 z-50">
-                        <ul>
-                          <li
-                            className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer transition duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditingPlaylist(playlist._id, playlist.name);
-                              closeDropdown();
-                            }}
-                          >
-                            Rename
-                          </li>
-                          <li
-                            className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer text-red-400 transition duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeletePlaylist(playlist._id);
-                              closeDropdown();
-                            }}
-                          >
-                            Delete
-                          </li>
-                        </ul>
+                    {spotifyPlaylists.map((pl) => (
+                      <div
+                        key={pl._id}
+                        className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                        onClick={() =>
+                          navigate(`/spotify-playlist/${pl.spotifyId}`)
+                        }
+                      >
+                        <img
+                          src={pl.image}
+                          alt="Playlist Cover"
+                          className="w-12 h-12 rounded-md object-cover"
+                        />
+                        <div className="flex-grow overflow-hidden">
+                          <div className="text-white text-sm font-medium truncate">
+                            {pl.name}
+                          </div>
+                          <div className="text-xs text-gray-400 truncate">
+                            Playlist • {pl.owner?.name || "Unknown"}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSpotifyPlaylist(pl._id);
+                          }}
+                          className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
+                        >
+                          ✖
+                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              })
+                    ))}
+                  </>
+                )}
+
+                {playlists.map((playlist) => {
+                  const playlistImage = playlist?.songs?.length
+                    ? playlist.songs[0].albumCover
+                    : "https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg";
+
+                  return (
+                    <div
+                      key={playlist._id}
+                      className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                      onClick={() => navigate(`/playlist/${playlist._id}`)}
+                    >
+                      <img
+                        src={playlistImage}
+                        alt="Playlist Cover"
+                        className="w-12 h-12 rounded-md object-cover"
+                      />
+                      <div className="flex-grow overflow-hidden">
+                        <span className="text-white text-sm font-normal truncate">
+                          {playlist.name}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDropdown(playlist._id);
+                        }}
+                        className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
+                      >
+                        <SlOptions />
+                      </button>
+
+                      {dropdownVisible === playlist._id && (
+                        <div className="dropdown-menu absolute top-[4.5rem] right-0 bg-[#242424] shadow-lg rounded-sm p-1 w-32 text-gray-200 z-50">
+                          <ul>
+                            <li
+                              className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer transition duration-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditingPlaylist(
+                                  playlist._id,
+                                  playlist.name
+                                );
+                                closeDropdown();
+                              }}
+                            >
+                              Rename
+                            </li>
+                            <li
+                              className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer text-red-400 transition duration-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePlaylist(playlist._id);
+                                closeDropdown();
+                              }}
+                            >
+                              Delete
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Albums section */}
+                {albums.length > 0 && (
+                  <>
+                    <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                      Saved Albums
+                    </div>
+                    {albums.map((album) => (
+                      <div
+                        key={album._id}
+                        className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                        onClick={() => navigate(`/album/${album.spotifyId}`)}
+                      >
+                        <img
+                          src={album.image}
+                          alt="Album Cover"
+                          className="w-12 h-12 rounded-md object-cover"
+                        />
+                        <div className="flex-grow overflow-hidden">
+                          <div className="text-white text-sm font-normal leading-tight">
+                            <div className="truncate font-medium">
+                              {album.name}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Album •{" "}
+                              {album.artists?.[0]?.name || "Unknown Artist"}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAlbum(album._id);
+                          }}
+                          className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
+                        >
+                          ✖
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -22,46 +22,69 @@ const SpotifyPlaylist = () => {
   const [bgColor, setBgColor] = useState("#000000");
 
   const { setSongs: setGlobalSongs, setSongIndex, playPauseSong } = useAudio();
-  const createAndSaveSpotifyPlaylist = async (playlistData, token) => {
-    const createRes = await fetch("http://localhost:5001/api/playlists", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: playlistData.name }),
-    });
+  const saveSpotifyPlaylistToSidebar = async () => {
+    if (!playlist || !token) return;
 
-    const { playlist } = await createRes.json();
-    const playlistId = playlist._id;
-
-    for (const item of playlistData.tracks.items) {
-      const track = item.track;
-      if (!track) continue;
-
-      const song = {
-        songId: track.id,
-        name: track.name,
-        uri: track.uri,
-        artists: track.artists,
-        albumCover: track.album?.images?.[0]?.url || "",
-        duration_ms: track.duration_ms,
-      };
-
-      await fetch(
-        `http://localhost:5001/api/playlists/${playlistId}/add-song`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+    try {
+      const res = await fetch("http://localhost:5001/api/spotify-playlist", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spotifyId: playlist.id,
+          name: playlist.name,
+          image: playlist.images?.[0]?.url || "",
+          owner: {
+            name: playlist.owner?.display_name || "Unknown",
+            id: playlist.owner?.id || "",
           },
-          body: JSON.stringify(song),
-        }
-      );
-    }
+        }),
+      });
 
-    setIsSaved(true);
+      const data = await res.json();
+      if (data.success) {
+        setIsSaved(true);
+      }
+    } catch (err) {
+      console.error("Error saving Spotify playlist:", err);
+    }
+  };
+
+  const deleteSpotifyPlaylistFromSidebar = async () => {
+    if (!playlist || !token) return;
+
+    try {
+      // First fetch all saved playlists to find the DB _id
+      const res = await fetch("http://localhost:5001/api/spotify-playlist", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const target = data.playlists.find(
+          (pl) => pl.spotifyId === playlist.id
+        );
+
+        if (!target) return;
+
+        const deleteRes = await fetch(
+          `http://localhost:5001/api/spotify-playlist/${target._id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const deleteData = await deleteRes.json();
+        if (deleteData.success) {
+          setIsSaved(false);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting Spotify playlist from sidebar:", err);
+    }
   };
 
   useEffect(() => {
@@ -111,31 +134,26 @@ const SpotifyPlaylist = () => {
   }, [id, accessToken, setGlobalSongs]);
 
   useEffect(() => {
-    const fetchUserPlaylists = async () => {
-      if (!token || !playlist) return;
-
+    const checkIfSaved = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/playlists", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await fetch("http://localhost:5001/api/spotify-playlist", {
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-
-        if (data.success && Array.isArray(data.playlists)) {
-          setUserPlaylists(data.playlists);
-          const isAlreadySaved = data.playlists.some((pl) => {
-            return pl.name === playlist.name;
-          });
-
-          setIsSaved(isAlreadySaved);
+        if (data.success) {
+          const alreadySaved = data.playlists.some(
+            (pl) => pl.spotifyId === playlist.id
+          );
+          setIsSaved(alreadySaved);
         }
       } catch (err) {
-        console.error("❌ Error checking if playlist is saved:", err);
+        console.error("Error checking if playlist is saved:", err);
       }
     };
 
-    fetchUserPlaylists();
+    if (playlist && token) {
+      checkIfSaved();
+    }
   }, [playlist, token]);
 
   if (!playlist) return <p className="text-white">Loading...</p>;
@@ -191,8 +209,10 @@ const SpotifyPlaylist = () => {
             </button>
             <button
               onClick={() => {
-                if (!isSaved) {
-                  createAndSaveSpotifyPlaylist(playlist, token);
+                if (isSaved) {
+                  deleteSpotifyPlaylistFromSidebar();
+                } else {
+                  saveSpotifyPlaylistToSidebar();
                 }
               }}
               className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
