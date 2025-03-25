@@ -77,8 +77,8 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist, onClick }) => {
         </div>
 
         <div className="text-white">
-          <h3 className="font-semibold text-base">
-            {truncateText(song.name, 43)}
+          <h3 className="font-normal text-base">
+            {truncateText(song.name, 40)}
           </h3>
           <p className="text-gray-400 text-sm">
             {Array.isArray(song.artists)

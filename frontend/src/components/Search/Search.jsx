@@ -12,6 +12,12 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
+  console.log("Raw Spotify playlists:", playlists);
+
+  const validPlaylists = playlists.filter(
+    (p) => p && p.id && p.name && p.images?.length > 0
+  );
+  const firstFivePlaylists = validPlaylists.slice(0, 5);
 
   return (
     <Layout>
@@ -78,46 +84,33 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                 ))}
               </div>
             </div>
-            {playlists.length > 0 && (
+
+            {firstFivePlaylists.length > 0 && (
               <>
                 <h2 className="text-2xl font-bold mt-6 mb-2 px-6">Playlists</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 px-3">
-                  {playlists.slice(0, 5).map((playlist, index) => {
-                    if (!playlist) {
-                      return (
-                        <div
-                          key={`null-playlist-${index}`}
-                          className="text-white"
-                        >
-                          No playlist data
-                        </div>
-                      );
-                    }
-
-                    // Use optional chaining and fallback strings so we never crash
-                    return (
-                      <Link
-                        to={`/spotify-playlist/${playlist.id}`}
+                  {firstFivePlaylists.map((playlist, index) => (
+                    <Link
+                      to={`/spotify-playlist/${playlist.id}`}
+                      key={playlist.id}
+                    >
+                      <Card
                         key={playlist.id}
-                      >
-                        <Card
-                          key={playlist.id ?? `fallback-key-${index}`}
-                          song={{
-                            id: playlist.id ?? `no-id-${index}`,
-                            uri: playlist.uri ?? "",
-                            name: playlist.name ?? "Unknown Playlist",
-                            artists: [
-                              {
-                                name: playlist.owner?.display_name ?? "Unknown",
-                              },
-                            ],
-                            albumCover: playlist.images?.[0]?.url ?? "",
-                          }}
-                          handlePlay={() => playPauseSong(playlist)}
-                        />
-                      </Link>
-                    );
-                  })}
+                        song={{
+                          id: playlist.id,
+                          uri: playlist.uri ?? "",
+                          name: playlist.name,
+                          artists: [
+                            {
+                              name: playlist.owner?.display_name ?? "Unknown",
+                            },
+                          ],
+                          albumCover: playlist.images?.[0]?.url ?? "",
+                        }}
+                        handlePlay={() => playPauseSong(playlist)}
+                      />
+                    </Link>
+                  ))}
                 </div>
               </>
             )}
@@ -126,18 +119,19 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                 <h2 className="text-2xl font-bold mt-6 mb-2 px-6">Artists</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 px-3">
                   {artists.slice(0, 5).map((artist) => (
-                    <Card
-                      type="artist"
-                      key={artist.id}
-                      song={{
-                        id: artist.id,
-                        uri: artist.uri || "",
-                        name: artist.name,
-                        artists: [{ name: "Artist" }],
-                        albumCover: artist.images?.[0]?.url || "",
-                      }}
-                      handlePlay={() => playPauseSong(artist)}
-                    />
+                    <Link key={artist.id} to={`/artist/${artist.id}`}>
+                      <Card
+                        type="artist"
+                        song={{
+                          id: artist.id,
+                          uri: artist.uri || "",
+                          name: artist.name,
+                          artists: [{ name: "Artist" }],
+                          albumCover: artist.images?.[0]?.url || "",
+                        }}
+                        handlePlay={() => playPauseSong(artist)}
+                      />
+                    </Link>
                   ))}
                 </div>
               </>
@@ -147,17 +141,18 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                 <h2 className="text-2xl font-bold mt-6 mb-2 px-6">Albums</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 px-3">
                   {albums.slice(0, 5).map((album) => (
-                    <Card
-                      key={album.id}
-                      song={{
-                        id: album.id,
-                        uri: album.uri || "",
-                        name: album.name,
-                        artists: album.artists || [],
-                        albumCover: album.images?.[0]?.url || "",
-                      }}
-                      handlePlay={() => playPauseSong(album)}
-                    />
+                    <Link to={`/album/${album.id}`} key={album.id}>
+                      <Card
+                        song={{
+                          id: album.id,
+                          uri: album.uri || "",
+                          name: album.name,
+                          artists: album.artists || [],
+                          albumCover: album.images?.[0]?.url || "",
+                        }}
+                        handlePlay={() => playPauseSong(album)}
+                      />
+                    </Link>
                   ))}
                 </div>
               </>

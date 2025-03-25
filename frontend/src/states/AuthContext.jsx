@@ -17,14 +17,14 @@ const AuthProvider = ({ children }) => {
     const fetchUser = async () => {
       try {
         console.log("AuthContext - Fetching user with token:", token);
-    
+
         const response = await fetch("http://localhost:5001/api/user/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-    
+
         const data = await response.json();
         console.log("AuthContext - API Response:", data);
-    
+
         if (data.success) {
           console.log("AuthContext - Setting user:", data.user);
           setUser(data.user); // ✅ This should update user
@@ -39,15 +39,14 @@ const AuthProvider = ({ children }) => {
         localStorage.removeItem("auth_token");
       }
     };
-    
 
     fetchUser();
   }, [token]);
 
   const login = (newToken) => {
     console.log("AuthContext - Setting new token:", newToken);
-    localStorage.setItem("auth_token", newToken);  // ✅ Save token
-    setToken(newToken);  // ✅ Update state
+    localStorage.setItem("auth_token", newToken); // ✅ Save token
+    setToken(newToken); // ✅ Update state
   };
 
   const logout = () => {

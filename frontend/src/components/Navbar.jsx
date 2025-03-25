@@ -26,9 +26,10 @@ const Navbar = ({ onSearch }) => {
 
   const logoutUser = () => {
     console.log("Navbar - Logging out...");
-    logout(); // ✅ Call AuthContext logout function
+    logout();
     dispatch(userLogout());
     setShowDropdown(false);
+    navigate("/");
   };
 
   return (

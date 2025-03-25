@@ -8,14 +8,12 @@ const truncateText = (text, length) => {
   return text.length > length ? text.substring(0, length) + "..." : text;
 };
 
-const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
-  // Guard against missing song prop
+const Card = ({ song, type = "Track", playlists, handleAddSongToPlaylist }) => {
   if (!song) {
     console.error("Card component received an undefined song prop.");
     return null;
   }
 
-  // Pull from AudioProvider: current track info + controls
   const { currentSong, isPlaying, playPauseSong, togglePlayPause } = useAudio();
 
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
@@ -35,8 +33,10 @@ const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
     }
   };
 
+  const formattedType = type.charAt(0).toUpperCase() + type.slice(1);
+
   return (
-    <div className="card col-span-1 p-3 rounded-lg hover:bg-[#242424] relative mb-2">
+    <div className="card grid-cols-1 sm:grid-cols-5 p-3 rounded-lg items-stretch relative mb-2">
       <div className="relative flex justify-center items-center">
         <img
           src={
@@ -64,9 +64,12 @@ const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
       </div>
 
       <div className="mt-2 text-start">
-        <h3 className="text-white font-semibold text-base mb-2">
+        <h3 className="text-white font-semibold line-clamp-2 text-base mb-1">
           {truncateText(song.name, 30)}
         </h3>
+
+        <p className="text-sm text-gray-400 mb-1">{formattedType}</p>
+
         <p className="text-white text-sm">
           {song.artists
             .slice(0, 2)
@@ -74,7 +77,6 @@ const Card = ({ song, type, playlists, handleAddSongToPlaylist }) => {
             .join(", ") + (song.artists.length > 2 ? "..." : "")}
         </p>
 
-        {/* Playlist dropdown trigger */}
         <button
           onClick={() => setShowPlaylistDropdown(!showPlaylistDropdown)}
           className="absolute top-2 right-14 text-white"

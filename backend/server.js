@@ -3,10 +3,12 @@ import axios from "axios";
 import querystring from "querystring";
 import dotenv from "dotenv";
 import spotifyRoutes from "./routes/spotify.js";
-import cors from "cors"; 
-import userRoutes from "./routes/user.js"; 
-import connectDB from "./db.js"; 
+import cors from "cors";
+import userRoutes from "./routes/user.js";
+import connectDB from "./db.js";
 import playlistRoutes from "./routes/playlist.js";
+import followedArtistRoutes from "./routes/follow.js";
+import albumRoutes from "./routes/album.js";
 
 dotenv.config();
 
@@ -15,11 +17,12 @@ const PORT = process.env.PORT || 5001;
 connectDB();
 const { CLIENT_ID, CLIENT_SECRET, REDIRECT_URI } = process.env;
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json()); 
-app.use("/api/user", userRoutes); 
-app.use("/api/spotify", spotifyRoutes); 
+app.use(express.json());
+app.use("/api/user", userRoutes);
+app.use("/api/spotify", spotifyRoutes);
 app.use("/api/playlists", playlistRoutes);
-
+app.use("/api/followed-artists", followedArtistRoutes);
+app.use("/api/albums", albumRoutes);
 
 console.log("🔍 CLIENT_ID:", process.env.CLIENT_ID);
 console.log(
@@ -82,7 +85,7 @@ app.get("/callback", async (req, res) => {
 
     console.log("✅ Successfully Authenticated! Access Token:", access_token);
 
-    res.redirect(`http://localhost:5173/login?token=${access_token}`); 
+    res.redirect(`http://localhost:5173/login?token=${access_token}`);
   } catch (error) {
     console.error(
       "❌ Spotify Token Exchange Error:",

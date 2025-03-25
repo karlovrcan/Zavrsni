@@ -119,13 +119,16 @@ router.get("/me", async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select("-password");
     if (!user)
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
     res.json({ success: true, user });
   } catch (error) {
-    res.status(403).json({ success: false, message: "Invalid or expired token" });
+    res
+      .status(403)
+      .json({ success: false, message: "Invalid or expired token" });
   }
 });
-
 
 export default router;

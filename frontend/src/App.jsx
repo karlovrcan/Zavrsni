@@ -17,8 +17,8 @@ import Signup from "./components/Signup/Signup";
 import Songbar from "./components/MasterBar/SongBar";
 import Playlist from "./components/Playlist/Playlist";
 import SpotifyPlaylist from "./components/Playlist/SpotifyPlaylist";
-
-<Route path="/spotify-playlist/:id" element={<SpotifyPlaylist />} />;
+import ArtistProfile from "./components/Profile/ArtistProfile";
+import Album from "./components/Album/Album";
 
 import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
 import { fetchSongs } from "./api/spotifyService";
@@ -37,6 +37,10 @@ const AppContent = () => {
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
 
+  // Decide whether to hide navbar and songbar
+  const hideNavAndSongBar =
+    location.pathname === "/login" || location.pathname === "/signup";
+
   useEffect(() => {
     if (searchQuery) {
       handleSearch(searchQuery);
@@ -45,13 +49,11 @@ const AppContent = () => {
 
   const handleSearch = async (query) => {
     if (!query || !accessToken) return;
-
     try {
       const { tracks, artists, albums, playlists } = await fetchSongs(
         query,
         accessToken
       );
-
       setSongs(tracks);
       setArtists(artists);
       setAlbums(albums);
@@ -112,7 +114,9 @@ const AppContent = () => {
 
   return (
     <>
-      <Navbar onSearch={handleSearch} />
+      {/* Only render Navbar if not on login or signup pages */}
+      {!hideNavAndSongBar && <Navbar onSearch={handleSearch} />}
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route
@@ -130,8 +134,11 @@ const AppContent = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/spotify-playlist/:id" element={<SpotifyPlaylist />} />
+        <Route path="/artist/:id" element={<ArtistProfile />} />
+        <Route path="/album/:id" element={<Album />} />
       </Routes>
-      <Songbar />
+
+      {!hideNavAndSongBar && <Songbar />}
     </>
   );
 };
