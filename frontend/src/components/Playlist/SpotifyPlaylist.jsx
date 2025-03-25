@@ -15,6 +15,8 @@ const SpotifyPlaylist = () => {
   const { token } = useContext(AuthContext);
   const [isSaved, setIsSaved] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
+  const [showContent, setShowContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
@@ -46,6 +48,9 @@ const SpotifyPlaylist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(true);
+        if (window.addSpotifyToSidebar) {
+          window.addSpotifyToSidebar();
+        }
       }
     } catch (err) {
       console.error("Error saving Spotify playlist:", err);
@@ -80,6 +85,9 @@ const SpotifyPlaylist = () => {
         const deleteData = await deleteRes.json();
         if (deleteData.success) {
           setIsSaved(false);
+          if (window.addSpotifyToSidebar) {
+            window.addSpotifyToSidebar();
+          }
         }
       }
     } catch (err) {
@@ -97,19 +105,20 @@ const SpotifyPlaylist = () => {
       const data = await res.json();
       setPlaylist(data);
 
-      const formattedTracks = data.tracks.items
-        .map(({ track }) => {
-          if (!track) return null;
-          return {
-            id: track.id,
-            uri: track.uri,
-            name: track.name,
-            artists: track.artists,
-            albumCover: track.album?.images?.[0]?.url || "",
-            duration_ms: track.duration_ms,
-          };
-        })
-        .filter(Boolean);
+      const formattedTracks =
+        playlist?.tracks?.items
+          ?.map(({ track }) => {
+            if (!track) return null;
+            return {
+              id: track.id,
+              uri: track.uri,
+              name: track.name,
+              artists: track.artists,
+              albumCover: track.album?.images?.[0]?.url || "",
+              duration_ms: track.duration_ms,
+            };
+          })
+          .filter(Boolean) || [];
 
       setGlobalSongs(formattedTracks);
 
@@ -156,90 +165,125 @@ const SpotifyPlaylist = () => {
     }
   }, [playlist, token]);
 
-  if (!playlist) return <p className="text-white">Loading...</p>;
+  useEffect(() => {
+    if (playlist) {
+      setShowContent(false);
+      setIsLoading(true);
 
-  const formattedTracks = playlist.tracks.items
-    .map(({ track }) => {
-      if (!track) return null;
-      return {
-        id: track.id,
-        uri: track.uri,
-        name: track.name,
-        artists: track.artists,
-        albumCover: track.album?.images?.[0]?.url || "",
-        duration_ms: track.duration_ms,
-      };
-    })
-    .filter(Boolean);
+      const delay = setTimeout(() => {
+        setIsLoading(false);
+        setShowContent(true);
+      }, 500);
+
+      return () => clearTimeout(delay);
+    }
+  }, [playlist]);
+
+  const formattedTracks =
+    playlist?.tracks?.items
+      ?.map(({ track }) => {
+        if (!track) return null;
+        return {
+          id: track.id,
+          uri: track.uri,
+          name: track.name,
+          artists: track.artists,
+          albumCover: track.album?.images?.[0]?.url || "",
+          duration_ms: track.duration_ms,
+        };
+      })
+      .filter(Boolean) || [];
 
   const playlistImage =
-    playlist.images?.[0]?.url || formattedTracks[0]?.albumCover;
+    playlist?.images?.[0]?.url || formattedTracks[0]?.albumCover || "";
 
   return (
     <Layout>
-      <div
-        style={{
-          background: `linear-gradient(135deg, ${bgColor} 0%, #000000 100%)`,
-        }}
-        className=" secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar"
-      >
-        <div className="flex p-4">
-          <div className="w-1/4">
-            <img
-              src={playlistImage}
-              alt="Playlist Cover"
-              className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
-            />
-          </div>
-          <div className="w-3/4 place-content-end pl-2 font-extrabold text-7xl text-white">
-            {playlist.name}
-          </div>
-        </div>
-        <div className="w-full bg-black/50 pb-[100px]">
-          {" "}
-          <div className="flex items-center p-4 gap-4 mb-6 mt-6">
-            <button
-              className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
-              onClick={() => {
-                setSongIndex(0);
-                playPauseSong(formattedTracks[0]);
-              }}
-            >
-              <IoIosPlay className="text-5xl pl-1" />
-            </button>
-            <button
-              onClick={() => {
-                if (isSaved) {
-                  deleteSpotifyPlaylistFromSidebar();
-                } else {
-                  saveSpotifyPlaylistToSidebar();
-                }
-              }}
-              className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
-                isSaved ? "text-[#1db954]" : "text-white"
-              }`}
-            >
-              {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
-            </button>
-          </div>
-          <div>
-            <div className="flex items-center justify-between px-5 py-2 text-gray-300  text-sm">
-              <p className="font-semibold ml-[65px]">Title / Author</p>
-              <IoTimeOutline className="text-xl mr-[70px]" />
+      <div className="relative h-[calc(100vh-155px)]">
+        {/* Spinner Layer */}
+        {isLoading && (
+          <div className="absolute inset-0 flex justify-center items-center z-50 bg-black">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#1db954]" />
+              <p className="text-white text-lg">Loading playlist...</p>
             </div>
-            <div className="w-[95%]  h-[2px] bg-white/10 mx-auto"></div>
           </div>
-          <div className="flex flex-col px-5 pt-2">
-            {formattedTracks.map((track, index) => (
-              <MiniCard
-                key={`${track.id}-${index}`}
-                song={track}
-                onClick={() => {
-                  setSongIndex(index);
-                  playPauseSong(track);
-                }}
-              />
-            ))}
+        )}
+
+        {/* Playlist Content with Fade-In */}
+        <div
+          className={`transition-opacity duration-500 h-full ${
+            showContent ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div
+            style={{
+              background: `linear-gradient(135deg, ${bgColor} 0%, #000000 100%)`,
+            }}
+            className="secondary_bg rounded-lg h-full overflow-auto custom-scrollbar"
+          >
+            <div className="flex p-4">
+              <div className="w-1/4">
+                <img
+                  src={playlistImage}
+                  alt="Playlist Cover"
+                  className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
+                />
+              </div>
+              <div className="w-3/4 place-content-end pl-2 font-extrabold text-7xl text-white">
+                {playlist?.name}
+              </div>
+            </div>
+
+            <div className="w-full bg-black/50 pb-[100px]">
+              <div className="flex items-center p-4 gap-4 mb-6 mt-6">
+                <button
+                  className="bg-[#1db954] text-black font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
+                  onClick={() => {
+                    setGlobalSongs(formattedTracks);
+                    setSongIndex(0);
+                    playPauseSong(formattedTracks[0]);
+                  }}
+                >
+                  <IoIosPlay className="text-5xl text-black pl-1" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (isSaved) {
+                      deleteSpotifyPlaylistFromSidebar();
+                    } else {
+                      saveSpotifyPlaylistToSidebar();
+                    }
+                  }}
+                  className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
+                    isSaved ? "text-[#1db954]" : "text-white"
+                  }`}
+                >
+                  {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
+                </button>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between px-5 py-2 text-gray-300 text-sm">
+                  <p className="font-semibold ml-[65px]">Title / Author</p>
+                  <IoTimeOutline className="text-xl mr-[70px]" />
+                </div>
+                <div className="w-[95%] h-[2px] bg-white/10 mx-auto"></div>
+              </div>
+
+              <div className="flex flex-col px-5 pt-2">
+                {formattedTracks.map((track, index) => (
+                  <MiniCard
+                    key={`${track.id}-${index}`}
+                    song={track}
+                    onClick={() => {
+                      setSongIndex(index);
+                      playPauseSong(track);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

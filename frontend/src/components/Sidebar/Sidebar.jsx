@@ -30,6 +30,17 @@ const Sidebar = () => {
     fetchSpotifyPlaylists();
   }, [user]);
 
+  useEffect(() => {
+    window.addAlbumToSidebar = fetchAlbums;
+    window.addSpotifyToSidebar = fetchSpotifyPlaylists;
+    window.addPlaylistToSidebar = fetchPlaylists;
+    return () => {
+      window.addAlbumToSidebar = null;
+      window.addSpotifyToSidebar = null;
+      window.addPlaylistToSidebar = null;
+    };
+  }, []);
+
   const handleCreatePlaylist = async () => {
     if (!playlistName.trim()) return;
 
@@ -294,14 +305,10 @@ const Sidebar = () => {
               </div>
             ) : (
               <>
-                <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                  Saved Playlists
-                </div>
-                {/* Playlists section */}
                 {spotifyPlaylists.length > 0 && (
                   <>
                     <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                      Spotify Playlists
+                      Playlists
                     </div>
                     {spotifyPlaylists.map((pl) => (
                       <div
@@ -341,7 +348,7 @@ const Sidebar = () => {
                 {playlists.map((playlist) => {
                   const playlistImage = playlist?.songs?.length
                     ? playlist.songs[0].albumCover
-                    : "https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg";
+                    : "../src/assets/playlistCover.png";
 
                   return (
                     <div
@@ -355,9 +362,14 @@ const Sidebar = () => {
                         className="w-12 h-12 rounded-md object-cover"
                       />
                       <div className="flex-grow overflow-hidden">
-                        <span className="text-white text-sm font-normal truncate">
-                          {playlist.name}
-                        </span>
+                        <div className="text-white text-sm font-normal leading-tight">
+                          <div className="truncate font-medium">
+                            {playlist.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            Playlist • {playlist.userId?.username || "Unknown"}
+                          </div>
+                        </div>
                       </div>
 
                       <button
@@ -407,7 +419,7 @@ const Sidebar = () => {
                 {albums.length > 0 && (
                   <>
                     <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                      Saved Albums
+                      Albums
                     </div>
                     {albums.map((album) => (
                       <div

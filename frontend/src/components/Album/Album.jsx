@@ -17,8 +17,10 @@ const Album = () => {
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const [albumData, setAlbumData] = useState(null);
   const [bgColor, setBgColor] = useState("#000000");
-  const { setSongIndex, playPauseSong } = useAudio();
+  const { setSongIndex, playPauseSong, setSongs } = useAudio();
   const [isSaved, setIsSaved] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchAlbum = async () => {
@@ -32,9 +34,15 @@ const Album = () => {
           }
         );
         const fetchedAlbumData = await spotifyRes.json();
+
+        if (!fetchedAlbumData || fetchedAlbumData.error) {
+          console.error("Invalid album data from Spotify", fetchedAlbumData);
+          return;
+        }
+
         setAlbumData(fetchedAlbumData);
 
-        const coverImage = fetchedAlbumData.images?.[0]?.url;
+        const coverImage = fetchedAlbumData?.images?.[0]?.url;
         if (coverImage) {
           Vibrant.from(coverImage)
             .getPalette()
@@ -57,6 +65,8 @@ const Album = () => {
 
   useEffect(() => {
     const checkIfSaved = async () => {
+      if (!token || !albumData?.id) return;
+
       try {
         const res = await fetch("http://localhost:5001/api/albums", {
           headers: { Authorization: `Bearer ${token}` },
@@ -73,14 +83,22 @@ const Album = () => {
       }
     };
 
-    if (albumData && token) {
-      checkIfSaved();
-    }
+    checkIfSaved();
   }, [albumData, token]);
 
-  if (!albumData) {
-    return <p className="text-white">Loading...</p>;
-  }
+  useEffect(() => {
+    if (albumData) {
+      setShowContent(false);
+      setIsLoading(true);
+
+      const delay = setTimeout(() => {
+        setIsLoading(false);
+        setShowContent(true);
+      }, 500);
+
+      return () => clearTimeout(delay);
+    }
+  }, [albumData]);
 
   const saveAlbumToSidebar = async () => {
     if (!albumData || !token) return;
@@ -106,99 +124,154 @@ const Album = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(true);
+        if (window.addAlbumToSidebar) {
+          window.addAlbumToSidebar();
+        }
       }
     } catch (err) {
       console.error("Error saving album:", err);
     }
   };
 
-  const formattedTracks = albumData.tracks?.items
-    ?.map((item) => {
-      const track = item?.track || item;
-      if (!track) return null;
-      return {
-        id: track.id,
-        uri: track.uri,
-        name: track.name,
-        artists: track.artists,
-        // Use the album's main image for each track
-        albumCover: albumData.images?.[0]?.url || "",
-        duration_ms: track.duration_ms,
-      };
-    })
-    .filter(Boolean);
+  const deleteAlbumFromSidebar = async () => {
+    if (!albumData || !token) return;
 
-  const albumCoverImage =
-    albumData.images?.[0]?.url ||
-    (formattedTracks?.[0] ? formattedTracks[0].albumCover : "");
+    try {
+      const res = await fetch("http://localhost:5001/api/albums", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const match = data.albums.find((a) => a.spotifyId === albumData.id);
+        if (!match) return;
+
+        const deleteRes = await fetch(
+          `http://localhost:5001/api/albums/${match._id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const deleteData = await deleteRes.json();
+        if (deleteData.success) {
+          setIsSaved(false);
+          if (window.addAlbumToSidebar) {
+            window.addAlbumToSidebar();
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting album:", err);
+    }
+  };
+
+  const formattedTracks =
+    albumData?.tracks?.items
+      ?.map((item) => {
+        const track = item?.track || item;
+        if (!track) return null;
+        return {
+          id: track.id,
+          uri: track.uri,
+          name: track.name,
+          artists: track.artists,
+          albumCover: albumData.images?.[0]?.url || "",
+          duration_ms: track.duration_ms,
+        };
+      })
+      ?.filter(Boolean) || [];
+
+  const albumCoverImage = albumData?.images?.[0]?.url || "";
 
   return (
     <Layout>
-      <div
-        style={{
-          background: `linear-gradient(135deg, ${bgColor} 0%, #000000 100%)`,
-        }}
-        className="secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar"
-      >
-        {/* Album Header */}
-        <div className="flex p-4">
-          <div className="w-1/4">
-            <img
-              src={albumCoverImage}
-              alt="Album Cover"
-              className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
-            />
-          </div>
-          <div className="w-3/4 pl-2 font-extrabold text-7xl text-white">
-            {albumData.name}
-          </div>
-        </div>
-
-        {/* Tracks Section */}
-        <div className="w-full bg-black/30 pb-[75px]">
-          {/* Play & Info Buttons */}
-          <div className="flex items-center p-4 gap-4 mb-6 mt-6">
-            <button
-              className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
-              onClick={() => {
-                if (formattedTracks.length > 0) {
-                  setSongIndex(0);
-                  playPauseSong(formattedTracks[0]);
-                }
-              }}
-            >
-              <IoIosPlay className="text-5xl pl-1" />
-            </button>
-            <button
-              onClick={saveAlbumToSidebar}
-              disabled={isSaved}
-              className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
-                isSaved ? "text-[#1db954]" : "text-white"
-              }`}
-            >
-              {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
-            </button>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-              <p className="font-semibold ml-[65px]">Title / Author</p>
-              <IoTimeOutline className="text-xl mr-[70px]" />
+      <div className="relative h-[calc(100vh-155px)]">
+        {/* Spinner Layer */}
+        {isLoading && (
+          <div className="absolute inset-0 flex justify-center items-center z-50 bg-black">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#1db954]" />
+              <p className="text-white text-lg">Loading album...</p>
             </div>
-            <div className="w-full h-[2px] bg-white/10"></div>
           </div>
+        )}
 
-          <div className="flex flex-col gap-2 p-4">
-            {formattedTracks.map((track, index) => (
-              <MiniCard
-                key={`${track.id}-${index}`}
-                song={track}
-                onClick={() => {
-                  setSongIndex(index);
-                  playPauseSong(track);
-                }}
-              />
-            ))}
+        {/* Album Content with Fade-In */}
+        <div
+          className={`transition-opacity duration-500 h-full ${
+            showContent ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div
+            style={{
+              background: `linear-gradient(135deg, ${bgColor} 0%, #000000 100%)`,
+            }}
+            className="secondary_bg rounded-lg h-full overflow-auto custom-scrollbar"
+          >
+            {/* Album Header */}
+            <div className="flex p-4">
+              <div className="w-1/4">
+                <img
+                  src={albumCoverImage}
+                  alt="Album Cover"
+                  className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
+                />
+              </div>
+              <div className="w-3/4 pl-2 font-extrabold text-7xl text-white">
+                {albumData?.name || "Unnamed Album"}
+              </div>
+            </div>
+
+            {/* Tracks Section */}
+            <div className="w-full bg-black/30 pb-[75px]">
+              <div className="flex items-center p-4 gap-4 mb-6 mt-6">
+                <button
+                  className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
+                  onClick={() => {
+                    if (formattedTracks.length > 0) {
+                      setSongs(formattedTracks);
+                      setSongIndex(0);
+                      playPauseSong(formattedTracks[0]);
+                    }
+                  }}
+                >
+                  <IoIosPlay className="text-5xl text-black pl-1" />
+                </button>
+                <button
+                  onClick={() => {
+                    isSaved ? deleteAlbumFromSidebar() : saveAlbumToSidebar();
+                  }}
+                  className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
+                    isSaved ? "text-[#1db954]" : "text-white"
+                  }`}
+                >
+                  {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
+                </button>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
+                  <p className="font-semibold ml-[65px]">Title / Author</p>
+                  <IoTimeOutline className="text-xl mr-[70px]" />
+                </div>
+                <div className="w-full h-[2px] bg-white/10"></div>
+              </div>
+
+              <div className="flex flex-col gap-2 p-4">
+                {formattedTracks.map((track, index) => (
+                  <MiniCard
+                    key={`${track.id}-${index}`}
+                    song={track}
+                    onClick={() => {
+                      setSongIndex(index);
+                      playPauseSong(track);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
