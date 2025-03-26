@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { IoIosPlay, IoIosPause } from "react-icons/io";
-import { SlOptions } from "react-icons/sl";
+import { BsCheckCircleFill } from "react-icons/bs";
+import { CiCirclePlus } from "react-icons/ci";
 import { useAudio } from "../../states/AudioProvider";
+import { AuthContext } from "../../states/AuthContext";
 import "./MiniCard.css";
 
 const truncateText = (text, length) => {
@@ -16,27 +18,106 @@ const formatDuration = (ms) => {
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 };
 
-/**
- * @param {object} song - Must include ._id (string), .name, .artists, etc.
- * @param {array} playlists - List of user’s playlists to choose from
- * @param {function} handleAddSongToPlaylist - (playlistId, songId) => ...
- */
-const MiniCard = ({ song, playlists, handleAddSongToPlaylist, onClick }) => {
+const MiniCard = ({ song, onClick }) => {
   if (!song) {
     console.error("MiniCard component received an undefined song prop.");
     return null;
   }
 
   const { currentSong, isPlaying, playPauseSong, togglePlayPause } = useAudio();
-  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
-  const [selectedPlaylist, setSelectedPlaylist] = useState("");
+  const { user, token } = useContext(AuthContext);
 
-  const songId = song._id;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [addedToPlaylists, setAddedToPlaylists] = useState([]);
 
-  const handlePlaylistSelection = async () => {
-    if (!selectedPlaylist || !songId) return;
-    await handleAddSongToPlaylist(selectedPlaylist, songId);
-    setShowPlaylistDropdown(false);
+  const songId = song._id || song.id || song.uri;
+
+  useEffect(() => {
+    if (user) {
+      fetchPlaylists();
+    }
+  }, [user, songId]);
+
+  const fetchPlaylists = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/playlists", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPlaylists(data.playlists);
+        const added = data.playlists
+          .filter((p) => p.songs.some((s) => s._id === songId))
+          .map((p) => p._id);
+        setAddedToPlaylists(added);
+      }
+    } catch (err) {
+      console.error("Error fetching playlists", err);
+    }
+  };
+
+  const addSongToPlaylist = async (playlistId) => {
+    const body = {
+      songId: songId,
+      name: song.name || "Unknown",
+      uri: song.uri,
+      album: song.album || "Unknown Album",
+      artists: song.artists || [],
+      albumCover: song.albumCover || "",
+      duration_ms: song.duration_ms || song.duration || 0,
+    };
+
+    try {
+      const res = await fetch(
+        `http://localhost:5001/api/playlists/${playlistId}/add-song`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      const data = await res.json();
+      if (data.success) {
+        setAddedToPlaylists((prev) => [...new Set([...prev, playlistId])]);
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.error("Error adding song to playlist", err);
+    }
+  };
+
+  const removeSongFromPlaylist = async (playlistId) => {
+    try {
+      const res = await fetch(
+        `http://localhost:5001/api/playlists/${playlistId}/remove-song`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ songId }),
+        }
+      );
+
+      const data = await res.json();
+      if (data.success) {
+        setAddedToPlaylists((prev) => prev.filter((id) => id !== playlistId));
+        if (typeof window.refreshActivePlaylist === "function") {
+          window.refreshActivePlaylist();
+        }
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.error("Error removing song from playlist", err);
+    }
   };
 
   const handlePlayPauseClick = () => {
@@ -49,10 +130,10 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist, onClick }) => {
 
   return (
     <div
-      className="mini-card flex items-center justify-between p-2  rounded-sm cursor-pointer"
+      className="mini-card flex items-center justify-between p-2 rounded-sm cursor-pointer"
       onClick={onClick}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 w-1/3">
         <div className="relative w-12 h-12">
           <img
             src={
@@ -77,9 +158,7 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist, onClick }) => {
         </div>
 
         <div className="text-white">
-          <h3 className="font-normal text-base">
-            {truncateText(song.name, 40)}
-          </h3>
+          <h3 className="font-normal text-sm">{truncateText(song.name, 40)}</h3>
           <p className="text-gray-400 text-sm">
             {Array.isArray(song.artists)
               ? song.artists
@@ -91,43 +170,63 @@ const MiniCard = ({ song, playlists, handleAddSongToPlaylist, onClick }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Center: Album */}
+      <div className="w-1/3 text-center">
+        <p className="text-gray-300 text-sm italic">
+          {song.album || "Unknown Album"}
+        </p>
+      </div>
+
+      {/* Right: Add button + duration */}
+      <div className="flex items-center gap-2 w-1/3 justify-end mr-2 relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setDropdownOpen((prev) => !prev);
+          }}
+          className="add-icon-button text-xl text-green-400 transform hover:scale-110 transition relative pr-4"
+        >
+          {addedToPlaylists.length > 0 ? (
+            <BsCheckCircleFill />
+          ) : (
+            <CiCirclePlus />
+          )}
+        </button>
+
+        {dropdownOpen && (
+          <div className="absolute bottom-full mb-2 right-0 secondary_bg drop-shadow-[0_9px_10px_rgba(0,0,0,0.8)] rounded-md w-[15rem] p-1 z-50">
+            {playlists.length > 0 ? (
+              playlists.map((pl) => {
+                const isAdded = addedToPlaylists.includes(pl._id);
+                return (
+                  <button
+                    key={pl._id}
+                    className="block w-full text-left text-white px-2 py-1 hover:bg-gray-800 flex justify-between items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isAdded) {
+                        removeSongFromPlaylist(pl._id);
+                      } else {
+                        addSongToPlaylist(pl._id);
+                      }
+                    }}
+                  >
+                    <span className="text-sm pb-1 pt-1">Add to {pl.name}</span>
+                    {isAdded && (
+                      <BsCheckCircleFill className="text-green-500 ml-2" />
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="text-gray-400 text-sm">No playlists</p>
+            )}
+          </div>
+        )}
+
         <span className="text-gray-400 text-sm">
           {formatDuration(song.duration_ms || song.duration)}
         </span>
-
-        <button
-          onClick={() => setShowPlaylistDropdown(!showPlaylistDropdown)}
-          className="text-white"
-        >
-          <SlOptions className="text-xl option-button transform transition duration-200 hover:scale-110 mx-3" />
-        </button>
-
-        {showPlaylistDropdown && (
-          <div className="absolute right-0  shadow-lg rounded-md mt-2 p-2 w-48">
-            <ul className="text-gray-200">
-              <li>
-                <select
-                  onChange={(e) => setSelectedPlaylist(e.target.value)}
-                  className="w-full bg-[#121212] text-white p-2 rounded-sm"
-                >
-                  <option value="">Select Playlist</option>
-                  {playlists?.map((pl) => (
-                    <option key={pl._id} value={pl._id}>
-                      {pl.name}
-                    </option>
-                  ))}
-                </select>
-              </li>
-              <li
-                onClick={handlePlaylistSelection}
-                className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
-              >
-                Add to Playlist
-              </li>
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );

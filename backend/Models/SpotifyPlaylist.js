@@ -1,4 +1,3 @@
-// backend/Models/SpotifyPlaylist.js
 import mongoose from "mongoose";
 
 const spotifyPlaylistSchema = new mongoose.Schema({
@@ -14,6 +13,17 @@ const spotifyPlaylistSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  tracks: [
+    {
+      _id: { type: String, required: true }, // Spotify track ID
+      name: { type: String, required: true },
+      uri: { type: String, required: true },
+      album: { type: String, required: true }, // ✅ Album name
+      albumCover: { type: String, required: true },
+      duration_ms: { type: Number, required: true },
+      artists: [{ name: String }],
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

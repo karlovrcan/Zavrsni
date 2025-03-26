@@ -111,12 +111,12 @@ const Album = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          spotifyId: albumData.id,
-          name: albumData.name,
-          image: albumData.images?.[0]?.url || "",
-          artists: albumData.artists?.map((artist) => ({
-            name: artist.name,
-            id: artist.id,
+          spotifyId: album.id,
+          name: album.name,
+          image: album.images?.[0]?.url,
+          artists: album.artists?.map((a) => ({
+            name: a.name,
+            id: a.id,
           })),
         }),
       });
@@ -177,6 +177,7 @@ const Album = () => {
           uri: track.uri,
           name: track.name,
           artists: track.artists,
+          album: albumData.name || "Unknown Album",
           albumCover: albumData.images?.[0]?.url || "",
           duration_ms: track.duration_ms,
         };
@@ -210,7 +211,6 @@ const Album = () => {
             }}
             className="secondary_bg rounded-lg h-full overflow-auto custom-scrollbar"
           >
-            {/* Album Header */}
             <div className="flex p-4">
               <div className="w-1/4">
                 <img
@@ -251,13 +251,17 @@ const Album = () => {
                 </button>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-                  <p className="font-semibold ml-[65px]">Title / Author</p>
-                  <IoTimeOutline className="text-xl mr-[70px]" />
+              <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
+                <p className="font-semibold w-1/3 text-center pr-[100px]">
+                  Title / Author
+                </p>
+                <p className="font-semibold w-1/3 text-center pr-2">Album</p>
+                <div className="w-1/3 flex justify-end pr-6">
+                  <IoTimeOutline className="text-xl " />
                 </div>
-                <div className="w-full h-[2px] bg-white/10"></div>
               </div>
+
+              <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
 
               <div className="flex flex-col gap-2 p-4">
                 {formattedTracks.map((track, index) => (

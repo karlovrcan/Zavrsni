@@ -9,6 +9,7 @@ const PlaylistSchema = new mongoose.Schema({
       name: { type: String, required: true },
       artists: [{ name: String }],
       uri: { type: String, required: true },
+      album: { type: String, required: true },
       albumCover: { type: String, required: true },
       duration_ms: { type: Number, required: true },
     },

@@ -121,6 +121,23 @@ const SongBar = () => {
       console.error("Error updating playlist:", error);
     }
   };
+  const formatRawMs = (ms) => {
+    const totalSeconds = Math.floor((ms || 0) / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
+
+  const handleSeekClick = (e) => {
+    if (disabled) return;
+
+    const slider = e.currentTarget;
+    const rect = slider.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const newProgress = (clickX / rect.width) * 100;
+
+    changeProgress(newProgress);
+  };
 
   return (
     <div className="w-full fixed bottom-0 left-0 h-[90px] bg-black flex justify-between items-center px-4 z-50">
@@ -204,9 +221,10 @@ const SongBar = () => {
               className={`text-white text-[40px] ${
                 disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
               }`}
-              onClick={() => !disabled && playPauseSong(currentSong)}
+              onClick={() => !disabled && togglePlayPause()}
             />
           )}
+
           <IoIosSkipForward
             onClick={() => !disabled && nextSong()}
             className={`text-2xl ${
@@ -221,23 +239,34 @@ const SongBar = () => {
         </div>
 
         {/* Progress */}
-        <div className="flex items-center gap-3 w-full px-4 mt-2 mb-1">
-          <span className="text-xs text-gray-400 w-8 text-right">
+        <div className="flex items-center justify-between gap-2 w-full px-4 mt-2 mb-1 h-[32px] relative z-10">
+          <span className="text-xs text-gray-400 w-[42px] text-right flex-shrink-0">
             {disabled ? "0:00" : currTime}
           </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            disabled={disabled}
-            value={isNaN(progress) ? 0 : progress}
-            onChange={(e) => changeProgress(Number(e.target.value))}
-            className={`w-full ${
-              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
-            }`}
-          />
-          <span className="text-xs text-gray-400 w-8 text-right">
-            {disabled ? "0:00" : duration_ms}
+
+          <div
+            className="slider-container flex-grow relative"
+            onClick={handleSeekClick}
+          >
+            <div
+              className="active_progress"
+              style={{ width: `${progress || 0}%` }}
+            ></div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={isNaN(progress) ? 0 : progress}
+              onChange={(e) => changeProgress(Number(e.target.value))}
+              disabled={disabled}
+              className={`progression ${
+                disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+              }`}
+            />
+          </div>
+
+          <span className="text-xs text-gray-400 w-[42px] text-right flex-shrink-0">
+            {disabled ? "0:00" : formatRawMs(currentSong?.duration_ms)}
           </span>
         </div>
       </div>
@@ -257,17 +286,23 @@ const SongBar = () => {
         ) : (
           <LuVolume className={`text-xl ${disabled ? "opacity-30" : ""}`} />
         )}
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={volume}
-          onChange={changeVolume}
-          disabled={disabled}
-          className={`w-24 ${
-            disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
-          }`}
-        />
+        <div className="slider-container w-24">
+          <div
+            className="active_progress"
+            style={{ width: `${volume || 0}%` }}
+          ></div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={volume}
+            onChange={changeVolume}
+            disabled={disabled}
+            className={`progression ${
+              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+            }`}
+          />
+        </div>
         <TbArrowsDiagonal
           className={`text-xl ${disabled ? "opacity-30" : ""}`}
         />

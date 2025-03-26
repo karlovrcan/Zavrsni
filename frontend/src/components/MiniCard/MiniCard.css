@@ -31,10 +31,10 @@
   transform: translate(-50%, -50%) scale(1);
 }
 
-.option-button {
+.add-icon-button {
   opacity: 0;
 }
 
-.mini-card:hover .option-button {
+.mini-card:hover .add-icon-button {
   opacity: 1;
 }

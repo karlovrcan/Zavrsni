@@ -42,6 +42,7 @@ const SpotifyPlaylist = () => {
             name: playlist.owner?.display_name || "Unknown",
             id: playlist.owner?.id || "",
           },
+          tracks: playlist.tracks,
         }),
       });
 
@@ -114,6 +115,7 @@ const SpotifyPlaylist = () => {
               uri: track.uri,
               name: track.name,
               artists: track.artists,
+              album: track.album?.name || "Unknown Album",
               albumCover: track.album?.images?.[0]?.url || "",
               duration_ms: track.duration_ms,
             };
@@ -188,6 +190,7 @@ const SpotifyPlaylist = () => {
           uri: track.uri,
           name: track.name,
           artists: track.artists,
+          album: track.album?.name || "Unknown Album", // ✅ this is the key
           albumCover: track.album?.images?.[0]?.url || "",
           duration_ms: track.duration_ms,
         };
@@ -263,13 +266,17 @@ const SpotifyPlaylist = () => {
                 </button>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between px-5 py-2 text-gray-300 text-sm">
-                  <p className="font-semibold ml-[65px]">Title / Author</p>
-                  <IoTimeOutline className="text-xl mr-[70px]" />
+              <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
+                <p className="font-semibold w-1/3 text-center pr-[100px]">
+                  Title / Author
+                </p>
+                <p className="font-semibold w-1/3 text-center pr-2">Album</p>
+                <div className="w-1/3 flex justify-end pr-6">
+                  <IoTimeOutline className="text-xl " />
                 </div>
-                <div className="w-[95%] h-[2px] bg-white/10 mx-auto"></div>
               </div>
+
+              <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
 
               <div className="flex flex-col px-5 pt-2">
                 {formattedTracks.map((track, index) => (

@@ -37,11 +37,10 @@ router.post("/", verifyToken, async (req, res) => {
  */
 router.get("/", verifyToken, async (req, res) => {
   try {
-    const playlists = await Playlist.find({ userId: req.userId });
-    // If you want to show album covers, you'd need to store that data in the subdoc,
-    // or look it up from a "Song" model (which must be properly imported).
-    // Otherwise, the subdocuments in `playlist.songs` already hold albumCover, so you're good.
-
+    const playlists = await Playlist.find({ userId: req.userId }).populate(
+      "userId",
+      "username"
+    );
     res.json({ success: true, playlists });
   } catch (error) {
     console.error("❌ Error fetching playlists:", error);
@@ -103,7 +102,8 @@ router.delete("/:id", verifyToken, async (req, res) => {
 router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
   try {
     const { playlistId } = req.params;
-    const { songId, name, uri, artists, albumCover, duration_ms } = req.body;
+    const { songId, name, uri, artists, album, albumCover, duration_ms } =
+      req.body;
 
     if (!songId || !name) {
       return res
@@ -131,6 +131,7 @@ router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
       name,
       uri,
       artists,
+      album,
       albumCover,
       duration_ms,
     });

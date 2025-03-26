@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
 import { IoIosPlay } from "react-icons/io";
-import { FaArrowAltCircleUp } from "react-icons/fa";
 import { BsCheckCircleFill } from "react-icons/bs";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
@@ -21,58 +20,48 @@ const Playlist = () => {
   const scrollRef = useRef(null);
 
   const scrollToTop = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // 📌 Moved outside to make it accessible globally
+  const fetchPlaylist = async () => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/playlists/${id}`);
+      const data = await response.json();
+
+      if (
+        !data.success ||
+        !data.playlist ||
+        !Array.isArray(data.playlist.songs)
+      ) {
+        console.error("Invalid API response:", data);
+        return;
+      }
+
+      setPlaylist(data.playlist);
+      setSongs(data.playlist.songs);
+      setGlobalSongs(data.playlist.songs);
+      setSongIndex(0);
+    } catch (error) {
+      console.error("Error fetching playlist:", error);
     }
   };
 
   useEffect(() => {
-    const fetchPlaylist = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:5001/api/playlists/${id}`
-        );
-        const data = await response.json();
-
-        if (
-          !data.success ||
-          !data.playlist ||
-          !Array.isArray(data.playlist.songs)
-        ) {
-          console.error("Invalid API response:", data);
-          return;
-        }
-        setPlaylist(data.playlist);
-        setSongs(data.playlist.songs);
-        setGlobalSongs(data.playlist.songs);
-        setSongIndex(0);
-      } catch (error) {
-        console.error("Error fetching playlist:", error);
-      }
-    };
-
     fetchPlaylist();
   }, [id, setGlobalSongs, setSongIndex]);
 
   useEffect(() => {
-    if (playlist && playlist.songs && playlist.songs.length > 0) {
+    if (playlist?.songs?.length > 0) {
       const firstImg = playlist.songs[0].albumCover;
       if (firstImg) {
         import("node-vibrant/browser")
-          .then((module) => {
-            const { Vibrant } = module;
-            if (!Vibrant || typeof Vibrant.from !== "function") {
-              throw new Error(
-                "Vibrant.from is not available in the imported module"
-              );
-            }
+          .then(({ Vibrant }) => {
+            if (!Vibrant?.from) throw new Error("Vibrant.from is missing");
             return Vibrant.from(firstImg).getPalette();
           })
           .then((palette) => {
-            if (palette.Vibrant) {
+            if (palette?.Vibrant) {
               setBgColor(palette.Vibrant.hex);
             }
           })
@@ -81,11 +70,13 @@ const Playlist = () => {
     }
   }, [playlist]);
 
-  if (!playlist) return <p className="text-white">Loading...</p>;
-
-  const playlistImage = playlist.songs.length
-    ? playlist.songs[0].albumCover
-    : "../src/assets/playlistCover.png";
+  // ✅ Allow other components (like MiniCard) to refresh this view
+  useEffect(() => {
+    window.refreshActivePlaylist = fetchPlaylist;
+    return () => {
+      window.refreshActivePlaylist = null;
+    };
+  }, [id]);
 
   const deleteCustomPlaylist = async () => {
     if (!playlist?._id) return;
@@ -96,7 +87,7 @@ const Playlist = () => {
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`, // make sure token is in AuthContext
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -104,15 +95,18 @@ const Playlist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(false);
-
-        if (window.addPlaylistToSidebar) {
-          window.addPlaylistToSidebar(); // refresh sidebar
-        }
+        window.addPlaylistToSidebar?.(); // refresh sidebar if function exists
       }
     } catch (err) {
       console.error("❌ Failed to delete custom playlist:", err);
     }
   };
+
+  if (!playlist) return <p className="text-white">Loading...</p>;
+
+  const playlistImage = playlist.songs.length
+    ? playlist.songs[0].albumCover
+    : "../src/assets/playlistCover.png";
 
   return (
     <Layout>
@@ -128,13 +122,14 @@ const Playlist = () => {
             <img
               src={playlistImage}
               alt="Playlist Cover"
-              className=" w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
+              className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
             />
           </div>
           <div className="w-3/4 place-content-end pl-2 font-extrabold text-7xl">
             {playlist.name}
           </div>
         </div>
+
         <div className="w-full bg-black/50 pb-[110px]">
           <div className="flex items-center pt-6 pl-6 gap-4 mb-6 mt-6">
             <button
@@ -148,11 +143,7 @@ const Playlist = () => {
               <IoIosPlay className="text-5xl text-black pl-1" />
             </button>
             <button
-              onClick={() => {
-                if (isSaved) {
-                  deleteCustomPlaylist();
-                }
-              }}
+              onClick={isSaved ? deleteCustomPlaylist : undefined}
               className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
                 isSaved ? "text-[#1db954]" : "text-white"
               }`}
@@ -160,13 +151,19 @@ const Playlist = () => {
               {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
             </button>
           </div>
-          <div>
-            <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-              <p className="font-semibold ml-[65px]">Title / Author</p>
-              <IoTimeOutline className="text-xl mr-[70px]" />
+
+          <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
+            <p className="font-semibold w-1/3 text-center pr-[100px]">
+              Title / Author
+            </p>
+            <p className="font-semibold w-1/3 text-center pr-2">Album</p>
+            <div className="w-1/3 flex justify-end pr-6">
+              <IoTimeOutline className="text-xl " />
             </div>
-            <div className="w-full h-[2px] bg-white/10"></div>
           </div>
+
+          <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
+
           <div className="flex flex-col px-4 pt-2">
             {songs.length > 0 ? (
               songs.map((song, index) => (
@@ -180,7 +177,7 @@ const Playlist = () => {
                 />
               ))
             ) : (
-              <div className="flex justify-center items-center h-full w-full mt-9 ">
+              <div className="flex justify-center items-center h-full w-full mt-9">
                 <p className="text-3xl text-gray-400 text-center">
                   Add songs to start listening.
                 </p>

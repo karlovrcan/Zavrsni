@@ -7,7 +7,7 @@ const router = express.Router();
 
 // POST /api/spotify
 router.post("/", verifyToken, async (req, res) => {
-  const { spotifyId, name, image, owner } = req.body;
+  const { spotifyId, name, image, owner, tracks = [] } = req.body;
 
   try {
     const existing = await SpotifyPlaylist.findOne({
@@ -23,7 +23,17 @@ router.post("/", verifyToken, async (req, res) => {
       image,
       owner,
       addedBy: req.userId,
+      tracks: tracks.map((track) => ({
+        _id: track.id,
+        name: track.name,
+        uri: track.uri,
+        album: track.album?.name || "Unknown Album", // ✅ Ensure it's included
+        albumCover: track.album?.images?.[0]?.url || "",
+        duration_ms: track.duration_ms,
+        artists: (track.artists || []).map((a) => ({ name: a.name })),
+      })),
     });
+
     await playlist.save();
     res.status(201).json({ success: true, playlist });
   } catch (err) {

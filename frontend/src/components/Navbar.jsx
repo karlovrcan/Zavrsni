@@ -36,13 +36,13 @@ const Navbar = ({ onSearch }) => {
     <div className="sticky top-0 z-10 bg-black shadow-md pb-2 pt-2 px-4">
       <div className="flex items-center">
         <div className="mr-4 w-1/4">
-          <Link to="/">
-            <img src={logo} alt="Spotify Logo" className="w-8" />
+          <Link to="/" className="inline-block">
+            <img src={logo} alt="Spotify Logo" className="w-8 h-8" />
           </Link>
         </div>
-        <div className="flex-grow flex items-center justify-start px-9 space-x-4">
+        <div className="flex-grow flex items-center justify-start px-9 space-x-4 ">
           <Link to="/" className="text-white text-2xl">
-            <div className="tertiary_bg py-2 px-2 rounded-[50%] transform transition duration-200 hover:scale-110 hover:bg-gray-700">
+            <div className="tertiary_bg py-2 px-2 rounded-[50%] transform transition duration-200 hover:scale-110">
               <GoHomeFill />
             </div>
           </Link>
