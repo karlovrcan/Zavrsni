@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useContext } from "react";
-import { AuthContext } from "../../states/AuthContext";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
@@ -12,7 +11,7 @@ import { IoTimeOutline } from "react-icons/io5";
 import { Vibrant } from "node-vibrant/browser";
 
 const Album = () => {
-  const { token } = useContext(AuthContext);
+  const { token } = useSelector((state) => state.account);
   const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const [albumData, setAlbumData] = useState(null);
@@ -111,10 +110,10 @@ const Album = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          spotifyId: album.id,
-          name: album.name,
-          image: album.images?.[0]?.url,
-          artists: album.artists?.map((a) => ({
+          spotifyId: albumData.id,
+          name: albumData.name,
+          image: albumData.images?.[0]?.url,
+          artists: albumData.artists?.map((a) => ({
             name: a.name,
             id: a.id,
           })),

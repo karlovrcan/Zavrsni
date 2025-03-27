@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAudio } from "../../states/AudioProvider";
-import { AuthContext } from "../../states/AuthContext";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { Vibrant } from "node-vibrant/browser";
@@ -16,7 +15,7 @@ import Card from "../Card/Card";
 const ArtistProfile = () => {
   const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
-  const { token } = useContext(AuthContext);
+  const { token } = useSelector((state) => state.account);
   const [artist, setArtist] = useState(null);
   const [topTracks, setTopTracks] = useState([]);
   const [discography, setDiscography] = useState([]);

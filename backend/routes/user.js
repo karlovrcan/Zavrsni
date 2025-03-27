@@ -131,4 +131,31 @@ router.get("/me", async (req, res) => {
   }
 });
 
+router.put("/update", async (req, res) => {
+  try {
+    const token = req.header("Authorization")?.split(" ")[1];
+    console.log("🧾 Raw token:", req.header("Authorization"));
+    console.log("🧾 Extracted token:", token);
+
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("🔑 Decoded:", decoded);
+
+    const { username, bio, avatar } = req.body;
+    console.log("📦 Received update data:", { username, bio, avatar });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      decoded.userId,
+      { username, bio, avatar },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.error("❌ Update failed:", error); // ← this is what we need
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

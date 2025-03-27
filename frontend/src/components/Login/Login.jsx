@@ -6,11 +6,9 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { userActor } from "../../states/Actors/userActors";
 import { handleSpotifyCallback } from "../../states/Actions/SpotifyActions";
-import { AuthContext } from "../../states/AuthContext"; // ✅ Import AuthContext
 
 const Login = () => {
   const dispatch = useDispatch();
-  const { login } = useContext(AuthContext); // ✅ Get AuthContext login function
   const { user, isAuthenticated } = useSelector((state) => state.account);
   const [userDetails, setUserDetails] = useState({
     login: "",
@@ -62,8 +60,19 @@ const Login = () => {
       const Data = await res.json();
       if (Data.success) {
         toast.success(Data.message);
-        login(Data.token); // ✅ Store token in AuthContext
-        dispatch(userActor(Data.user)); // ✅ Also update Redux
+
+        // ✅ Store token in sessionStorage
+        sessionStorage.setItem("token", Data.token);
+
+        // ✅ Dispatch to Redux with user and token
+        dispatch({
+          type: "USER_LOGGED_IN",
+          payload: {
+            user: Data.user,
+            token: Data.token,
+          },
+        });
+
         navigate("/");
       } else {
         toast.error(Data.message);

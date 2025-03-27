@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
-import { AuthContext } from "../../states/AuthContext";
+import React, { useEffect, useState, useRef } from "react";
+import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
@@ -8,14 +8,15 @@ import { BsCheckCircleFill } from "react-icons/bs";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
+import fallbackImage from "../../assets/playlistCover.png";
 
 const Playlist = () => {
+  const { token } = useSelector((state) => state.account);
   const { id } = useParams();
   const [playlist, setPlaylist] = useState(null);
   const [songs, setSongs] = useState([]);
   const [bgColor, setBgColor] = useState("#000000");
   const [isSaved, setIsSaved] = useState(true);
-  const { token } = useContext(AuthContext);
   const { playPauseSong, setSongs: setGlobalSongs, setSongIndex } = useAudio();
   const scrollRef = useRef(null);
 
@@ -23,7 +24,6 @@ const Playlist = () => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // 📌 Moved outside to make it accessible globally
   const fetchPlaylist = async () => {
     try {
       const response = await fetch(`http://localhost:5001/api/playlists/${id}`);
@@ -61,16 +61,19 @@ const Playlist = () => {
             return Vibrant.from(firstImg).getPalette();
           })
           .then((palette) => {
-            if (palette?.Vibrant) {
-              setBgColor(palette.Vibrant.hex);
-            }
+            const chosenColor =
+              palette?.Vibrant?.hex ||
+              palette?.DarkVibrant?.hex ||
+              palette?.Muted?.hex ||
+              "#282828"; // fallback
+
+            setBgColor(chosenColor);
           })
           .catch((err) => console.error("Error extracting palette:", err));
       }
     }
   }, [playlist]);
 
-  // ✅ Allow other components (like MiniCard) to refresh this view
   useEffect(() => {
     window.refreshActivePlaylist = fetchPlaylist;
     return () => {
@@ -95,10 +98,10 @@ const Playlist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(false);
-        window.addPlaylistToSidebar?.(); // refresh sidebar if function exists
+        window.addPlaylistToSidebar?.();
       }
     } catch (err) {
-      console.error("❌ Failed to delete custom playlist:", err);
+      console.error("Failed to delete custom playlist:", err);
     }
   };
 
@@ -106,7 +109,7 @@ const Playlist = () => {
 
   const playlistImage = playlist.songs.length
     ? playlist.songs[0].albumCover
-    : "../src/assets/playlistCover.png";
+    : "../../src/assets/playlistCover.png";
 
   return (
     <Layout>
@@ -120,7 +123,7 @@ const Playlist = () => {
         <div className="flex p-4">
           <div className="w-1/4">
             <img
-              src={playlistImage}
+              src={playlistImage || fallbackImage}
               alt="Playlist Cover"
               className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
             />

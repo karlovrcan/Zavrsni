@@ -33,6 +33,11 @@ export const userReducer = (state = initialState, action) => {
         ...state,
         user: action.payload,
       };
+    case "UPDATE_USER_PROFILE":
+      return {
+        ...state,
+        user: action.payload,
+      };
 
     default:
       return state;

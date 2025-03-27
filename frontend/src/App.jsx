@@ -6,9 +6,10 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
+import { USER_ABOUT } from "./states/Constants/UserConstant";
 import { AppProvider } from "./states/Content";
 import { AudioProvider } from "./states/AudioProvider";
-import AuthProvider from "./states/AuthContext";
 import Navbar from "./components/Navbar";
 import Home from "./components/Home/Home";
 import Search from "./components/Search/Search";
@@ -19,6 +20,7 @@ import Playlist from "./components/Playlist/Playlist";
 import SpotifyPlaylist from "./components/Playlist/SpotifyPlaylist";
 import ArtistProfile from "./components/Profile/ArtistProfile";
 import Album from "./components/Album/Album";
+import Profile from "./components/Profile/Profile";
 
 import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
 import { fetchSongs } from "./api/spotifyService";
@@ -26,7 +28,7 @@ import { fetchSongs } from "./api/spotifyService";
 const AppContent = () => {
   const dispatch = useDispatch();
   const accessToken = useSelector((state) => state.spotify.accessToken);
-
+  const user = useSelector((state) => state.account.user);
   const [songs, setSongs] = useState([]);
   const [artists, setArtists] = useState([]);
   const [albums, setAlbums] = useState([]);
@@ -37,9 +39,29 @@ const AppContent = () => {
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
 
-  // Decide whether to hide navbar and songbar
   const hideNavAndSongBar =
     location.pathname === "/login" || location.pathname === "/signup";
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("token");
+
+    const restoreUser = async () => {
+      try {
+        const res = await axios.get("http://localhost:5001/api/user/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data.success) {
+          dispatch({ type: USER_ABOUT, payload: res.data.user });
+        }
+      } catch (err) {
+        console.error("🔴 Failed to restore user:", err.message);
+      }
+    };
+
+    if (token && !user?._id) {
+      restoreUser();
+    }
+  }, []);
 
   useEffect(() => {
     if (searchQuery) {
@@ -63,58 +85,8 @@ const AppContent = () => {
     }
   };
 
-  useEffect(() => {
-    if (!accessToken) return;
-
-    let playerInstance;
-
-    if (!window.Spotify) {
-      const script = document.createElement("script");
-      script.src = "https://sdk.scdn.co/spotify-player.js";
-      script.async = true;
-      script.onload = initializePlayer;
-      document.body.appendChild(script);
-    } else {
-      initializePlayer();
-    }
-
-    function initializePlayer() {
-      window.onSpotifyWebPlaybackSDKReady = () => {
-        const player = new window.Spotify.Player({
-          name: "My Spotify App",
-          getOAuthToken: (cb) => cb(accessToken),
-          volume: 0.8,
-        });
-
-        playerInstance = player;
-
-        player.addListener("ready", ({ device_id }) => {
-          console.log("Spotify Web Player Ready. Device ID:", device_id);
-          dispatch(setSpotifyDeviceId(device_id));
-          setDeviceId(device_id);
-        });
-
-        player.connect().then((success) => {
-          if (success) {
-            console.log("Connected to Spotify Web Player.");
-          } else {
-            console.error("Failed to connect to Spotify Web Player.");
-          }
-        });
-      };
-    }
-
-    return () => {
-      if (playerInstance) {
-        console.log("Disconnecting Spotify Player...");
-        playerInstance.disconnect();
-      }
-    };
-  }, [accessToken, dispatch]);
-
   return (
     <>
-      {/* Only render Navbar if not on login or signup pages */}
       {!hideNavAndSongBar && <Navbar onSearch={handleSearch} />}
 
       <Routes>
@@ -133,6 +105,7 @@ const AppContent = () => {
         <Route path="/playlist/:id" element={<Playlist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/profile/:id" element={<Profile />} />
         <Route path="/spotify-playlist/:id" element={<SpotifyPlaylist />} />
         <Route path="/artist/:id" element={<ArtistProfile />} />
         <Route path="/album/:id" element={<Album />} />
@@ -145,15 +118,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AudioProvider>
-          <Router>
-            <AppContent />
-          </Router>
-        </AudioProvider>
-      </AppProvider>
-    </AuthProvider>
+    <AppProvider>
+      <AudioProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AudioProvider>
+    </AppProvider>
   );
 };
 

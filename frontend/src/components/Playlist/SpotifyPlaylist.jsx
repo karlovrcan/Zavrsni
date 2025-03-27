@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
-import { AuthContext } from "../../states/AuthContext";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Layout from "../../Layout/Layout";
@@ -12,12 +11,11 @@ import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
 
 const SpotifyPlaylist = () => {
-  const { token } = useContext(AuthContext);
   const [isSaved, setIsSaved] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showContent, setShowContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
+  const { token } = useSelector((state) => state.account);
   const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const [playlist, setPlaylist] = useState(null);

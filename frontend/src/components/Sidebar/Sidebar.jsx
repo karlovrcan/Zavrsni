@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../../states/AuthContext";
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { FaPlus } from "react-icons/fa";
 import { BiLibrary } from "react-icons/bi";
 import { Link, useNavigate } from "react-router-dom";
 import { SlOptions } from "react-icons/sl";
-import Card from "../Card/Card";
 
 const Sidebar = () => {
-  const { user, token } = useContext(AuthContext);
+  const { user, token } = useSelector((state) => state.account);
   const [playlists, setPlaylists] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
@@ -56,7 +55,13 @@ const Sidebar = () => {
 
       const data = await response.json();
       if (data.success) {
-        setPlaylists([...playlists, data.playlist]);
+        // 👇 Patch the user info so Sidebar shows "Playlist • yourName"
+        const patchedPlaylist = {
+          ...data.playlist,
+          userId: { _id: user._id, username: user.username },
+        };
+
+        setPlaylists([...playlists, patchedPlaylist]);
         setPlaylistName("");
         setShowInput(false);
         setShowCreateDropdown(false);

@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema({
   day: { type: String, required: true },
   month: { type: String, required: true },
   year: { type: String, required: true },
+  bio: { type: String, default: "" },
+  avatar: { type: String, default: "" },
 });
 
 const User = mongoose.model("User", userSchema);

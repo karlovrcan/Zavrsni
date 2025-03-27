@@ -69,7 +69,6 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                         uri: track.uri,
                         name: track.name,
                         artists: track.artists,
-
                         albumCover: track.album?.images?.[0]?.url || "",
                       }}
                       handlePlay={() =>
@@ -97,6 +96,7 @@ const Search = ({ songs = [], artists = [], albums = [], playlists = [] }) => {
                         album: track.album?.name || "Unknown Album",
                         albumCover: track.album?.images?.[0]?.url || "",
                       }}
+                      hideAlbum={true}
                       handlePlay={() =>
                         playPauseSong({
                           _id: track.id,

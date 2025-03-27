@@ -1,10 +1,11 @@
-import { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../../states/AuthContext";
+import { useState, useEffect } from "react";
 import { useAudio } from "../../states/AudioProvider";
-
+import { useSelector } from "react-redux";
 import { IoIosSkipBackward, IoIosSkipForward } from "react-icons/io";
 import { IoPauseCircleSharp, IoPlayCircleSharp } from "react-icons/io5";
 import { CiCirclePlus, CiCircleMinus } from "react-icons/ci";
+import { BsCheckCircleFill } from "react-icons/bs";
+
 import {
   LuShuffle,
   LuRepeat2,
@@ -35,8 +36,7 @@ const SongBar = () => {
 
   const disabled = !currentSong;
   const currentSongId = currentSong?.id;
-
-  const { user, token } = useContext(AuthContext);
+  const { user, token } = useSelector((state) => state.account);
   const [playlists, setPlaylists] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isInPlaylist, setIsInPlaylist] = useState(false);
@@ -164,12 +164,11 @@ const SongBar = () => {
             disabled={disabled}
           >
             {isInPlaylist ? (
-              <CiCircleMinus className="text-white text-2xl transform hover:scale-110" />
+              <BsCheckCircleFill className="text-green-400 text-lg transform hover:scale-110" />
             ) : (
               <CiCirclePlus className="text-white text-2xl transform hover:scale-110" />
             )}
           </button>
-
           {!disabled && dropdownOpen && (
             <div className="absolute bottom-full mb-2 right-0 bg-black shadow-md rounded-md w-40 p-2 z-50">
               {playlists.length > 0 ? (
@@ -195,7 +194,6 @@ const SongBar = () => {
         </div>
       </div>
 
-      {/* Middle: Playback controls */}
       <div className="flex flex-col items-center w-[40%] min-w-[300px]">
         <div className="flex justify-center gap-5 items-center mt-1">
           <LuShuffle
@@ -238,7 +236,6 @@ const SongBar = () => {
           />
         </div>
 
-        {/* Progress */}
         <div className="flex items-center justify-between gap-2 w-full px-4 mt-2 mb-1 h-[32px] relative z-10">
           <span className="text-xs text-gray-400 w-[42px] text-right flex-shrink-0">
             {disabled ? "0:00" : currTime}
@@ -271,7 +268,6 @@ const SongBar = () => {
         </div>
       </div>
 
-      {/* Right: Volume + Icons */}
       <div className="flex items-center justify-end w-[30%] min-w-[250px] gap-4 text-white">
         <AiOutlinePlaySquare
           className={`text-xl ${disabled ? "opacity-30" : ""}`}

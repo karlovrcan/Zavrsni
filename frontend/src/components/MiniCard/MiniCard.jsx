@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { BsCheckCircleFill } from "react-icons/bs";
 import { CiCirclePlus } from "react-icons/ci";
 import { useAudio } from "../../states/AudioProvider";
-import { AuthContext } from "../../states/AuthContext";
 import "./MiniCard.css";
 
 const truncateText = (text, length) => {
@@ -18,15 +18,14 @@ const formatDuration = (ms) => {
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 };
 
-const MiniCard = ({ song, onClick }) => {
+const MiniCard = ({ song, onClick, hideAlbum = false }) => {
   if (!song) {
     console.error("MiniCard component received an undefined song prop.");
     return null;
   }
 
   const { currentSong, isPlaying, playPauseSong, togglePlayPause } = useAudio();
-  const { user, token } = useContext(AuthContext);
-
+  const { user, token } = useSelector((state) => state.account);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [addedToPlaylists, setAddedToPlaylists] = useState([]);
@@ -133,7 +132,9 @@ const MiniCard = ({ song, onClick }) => {
       className="mini-card flex items-center justify-between p-2 rounded-sm cursor-pointer"
       onClick={onClick}
     >
-      <div className="flex items-center gap-3 w-1/3">
+      <div
+        className={`flex items-center gap-3 ${hideAlbum ? "w-2/3" : "w-1/3"}`}
+      >
         <div className="relative w-12 h-12">
           <img
             src={
@@ -170,12 +171,13 @@ const MiniCard = ({ song, onClick }) => {
         </div>
       </div>
 
-      {/* Center: Album */}
-      <div className="w-1/3 text-center">
-        <p className="text-gray-300 text-sm italic">
-          {song.album || "Unknown Album"}
-        </p>
-      </div>
+      {!hideAlbum && (
+        <div className="w-1/3 text-center">
+          <p className="text-gray-300 text-sm italic">
+            {song.album || "Unknown Album"}
+          </p>
+        </div>
+      )}
 
       {/* Right: Add button + duration */}
       <div className="flex items-center gap-2 w-1/3 justify-end mr-2 relative">

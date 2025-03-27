@@ -64,51 +64,18 @@ const Card = ({ song, type = "Track", playlists, handleAddSongToPlaylist }) => {
       </div>
 
       <div className="mt-2 text-start">
-        <h3 className="text-white font-semibold line-clamp-2 text-base mb-1">
-          {truncateText(song.name, 30)}
+        <h3 className="text-white font-semibold line-clamp-2 text-sm mb-1">
+          {truncateText(song.name, 35)}
         </h3>
 
         <p className="text-sm text-gray-400 mb-1">{formattedType}</p>
 
-        <p className="text-white text-sm">
+        <p className="text-gray-400 text-sm">
           {song.artists
             .slice(0, 2)
             .map((artist) => artist.name)
             .join(", ") + (song.artists.length > 2 ? "..." : "")}
         </p>
-
-        <button
-          onClick={() => setShowPlaylistDropdown(!showPlaylistDropdown)}
-          className="absolute top-2 right-14 text-white"
-        >
-          <SlOptions className="text-2xl" />
-        </button>
-
-        {showPlaylistDropdown && (
-          <div className="absolute right-2 bg-[#242424] shadow-lg rounded-md mt-2 p-2 w-48">
-            <ul className="text-gray-200">
-              <li>
-                <select
-                  onChange={(e) => setSelectedPlaylist(e.target.value)}
-                  className="w-full bg-[#121212] text-white p-2 rounded-sm"
-                >
-                  <option value="">Select Playlist</option>
-                  {playlists?.map((playlist) => (
-                    <option key={playlist._id} value={playlist._id}>
-                      {playlist.name}
-                    </option>
-                  ))}
-                </select>
-              </li>
-              <li
-                onClick={handlePlaylistSelection}
-                className="flex p-2 hover:bg-[#121212] rounded-md cursor-pointer"
-              >
-                Add to Playlist
-              </li>
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );

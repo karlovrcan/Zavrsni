@@ -4,7 +4,6 @@ import {
   USER_LOGGED_OUT,
 } from "../Constants/UserConstant";
 
-// 🔹 Log In User & Store Token
 export const userActor = (user, token) => {
   sessionStorage.setItem("token", token); // Store token securely
   return { type: USER_LOGGED_IN, payload: { user, token } };
@@ -20,3 +19,8 @@ export const userLogout = () => {
 export const getUser = (user) => {
   return { type: USER_ABOUT, payload: user };
 };
+
+export const updateUserProfile = (updatedUser) => ({
+  type: "UPDATE_USER_PROFILE",
+  payload: updatedUser,
+});

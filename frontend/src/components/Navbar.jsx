@@ -6,13 +6,11 @@ import { FaUser } from "react-icons/fa";
 import { GoHomeFill } from "react-icons/go";
 import logo from "../assets/logo.svg";
 import { userLogout } from "../states/Actors/userActors";
-import { AuthContext } from "../states/AuthContext";
 
 const Navbar = ({ onSearch }) => {
-  const { logout } = useContext(AuthContext);
-  const { isAuthenticated } = useSelector((state) => state.account);
+  const { isAuthenticated, user } = useSelector((state) => state.account);
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // ✅ Initialize navigation hook
+  const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -26,7 +24,6 @@ const Navbar = ({ onSearch }) => {
 
   const logoutUser = () => {
     console.log("Navbar - Logging out...");
-    logout();
     dispatch(userLogout());
     setShowDropdown(false);
     navigate("/");
@@ -87,19 +84,33 @@ const Navbar = ({ onSearch }) => {
             </div>
           ) : (
             <div className="relative">
-              <button onClick={toggleDropdown}>
-                <FaUser />
+              <button
+                onClick={toggleDropdown}
+                className="w-10 h-10 rounded-full overflow-hidden border border-white flex items-center justify-center bg-neutral-800 hover:ring-2 hover:scale-105 transition-all"
+              >
+                {user?.avatar ? (
+                  <img
+                    src={user?.avatar}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <FaUser className="text-white text-xl" />
+                )}
               </button>
+
               {showDropdown && (
                 <div className="absolute dropdown top-11 w-[12rem] h-auto rounded-md shadow-lg right-0 bg-[#242424]">
                   <ul className="p-1 text-gray-200">
                     <li>
-                      <Link
-                        to={"/settings"}
-                        className="flex p-2 justify-between rounded-sm hover:bg-[#121212]"
-                      >
-                        <span>Settings</span>
-                      </Link>
+                      {user?._id && (
+                        <Link
+                          to={`/profile/${user._id}`}
+                          className="flex p-2 justify-between rounded-sm hover:bg-[#121212]"
+                        >
+                          <span>Profile</span>
+                        </Link>
+                      )}
                     </li>
                     <li>
                       <button
