@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
-import { IoIosPlay } from "react-icons/io";
+import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { Vibrant } from "node-vibrant/browser";
 import { BsCheckCircleFill } from "react-icons/bs";
 import { CiCirclePlus } from "react-icons/ci";
@@ -21,7 +21,17 @@ const SpotifyPlaylist = () => {
   const [playlist, setPlaylist] = useState(null);
   const [bgColor, setBgColor] = useState("#000000");
 
-  const { setSongs: setGlobalSongs, setSongIndex, playPauseSong } = useAudio();
+  const {
+    currentSong,
+    isPlaying,
+    setSongs: setGlobalSongs,
+    setSongIndex,
+    playPauseSong,
+    togglePlayPause,
+    setCurrentPlaylistId,
+    getShuffleStatus,
+  } = useAudio();
+
   const saveSpotifyPlaylistToSidebar = async () => {
     if (!playlist || !token) return;
 
@@ -40,7 +50,18 @@ const SpotifyPlaylist = () => {
             name: playlist.owner?.display_name || "Unknown",
             id: playlist.owner?.id || "",
           },
-          tracks: playlist.tracks,
+          tracks:
+            playlist.tracks.items?.map(({ track }) => ({
+              _id: track.id || track.uri || "unknown",
+              name: track.name,
+              uri: track.uri || "unknown",
+              album: track.album?.name || "Unknown Album",
+              albumCover:
+                track.album?.images?.[0]?.url ||
+                "https://via.placeholder.com/150",
+              duration_ms: track.duration_ms || 0,
+              artists: track.artists?.map((a) => ({ name: a.name })) || [],
+            })) || [],
         }),
       });
 
@@ -189,7 +210,8 @@ const SpotifyPlaylist = () => {
           name: track.name,
           artists: track.artists,
           album: track.album?.name || "Unknown Album", // ✅ this is the key
-          albumCover: track.album?.images?.[0]?.url || "",
+          albumCover:
+            track.album?.images?.[0]?.url || "https://via.placeholder.com/150",
           duration_ms: track.duration_ms,
         };
       })
@@ -198,10 +220,40 @@ const SpotifyPlaylist = () => {
   const playlistImage =
     playlist?.images?.[0]?.url || formattedTracks[0]?.albumCover || "";
 
+  const handlePlayPauseClick = () => {
+    if (!formattedTracks.length || !playlist?.id) return;
+
+    // Ensure context is ready
+    if (typeof getShuffleStatus !== "function") {
+      console.error("getShuffleStatus is not a function!");
+      return;
+    }
+
+    setCurrentPlaylistId(playlist.id);
+
+    const shouldShuffle = getShuffleStatus(playlist.id);
+    const tracksToPlay = shouldShuffle
+      ? [...formattedTracks].sort(() => Math.random() - 0.5)
+      : formattedTracks;
+
+    const firstTrack = tracksToPlay[0];
+    if (!firstTrack) return;
+
+    if (currentSong?.uri === firstTrack.uri) {
+      togglePlayPause();
+    } else {
+      setGlobalSongs(tracksToPlay);
+      setSongIndex(0);
+
+      setTimeout(() => {
+        playPauseSong(firstTrack);
+      }, 0);
+    }
+  };
+
   return (
     <Layout>
       <div className="relative h-[calc(100vh-155px)]">
-        {/* Spinner Layer */}
         {isLoading && (
           <div className="absolute inset-0 flex justify-center items-center z-50 bg-black">
             <div className="flex flex-col items-center gap-4">
@@ -211,7 +263,6 @@ const SpotifyPlaylist = () => {
           </div>
         )}
 
-        {/* Playlist Content with Fade-In */}
         <div
           className={`transition-opacity duration-500 h-full ${
             showContent ? "opacity-100" : "opacity-0"
@@ -240,14 +291,15 @@ const SpotifyPlaylist = () => {
               <div className="flex items-center p-4 gap-4 mb-6 mt-6">
                 <button
                   className="bg-[#1db954] text-black font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
-                  onClick={() => {
-                    setGlobalSongs(formattedTracks);
-                    setSongIndex(0);
-                    playPauseSong(formattedTracks[0]);
-                  }}
+                  onClick={handlePlayPauseClick}
                 >
-                  <IoIosPlay className="text-5xl text-black pl-1" />
+                  {currentSong?.uri === formattedTracks[0]?.uri && isPlaying ? (
+                    <IoIosPause className="text-5xl text-black " />
+                  ) : (
+                    <IoIosPlay className="text-5xl text-black pl-1" />
+                  )}
                 </button>
+
                 <button
                   onClick={() => {
                     if (isSaved) {

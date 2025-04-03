@@ -4,6 +4,7 @@ import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { BsCheckCircleFill } from "react-icons/bs";
 import { CiCirclePlus } from "react-icons/ci";
 import { useAudio } from "../../states/AudioProvider";
+import { Link } from "react-router-dom";
 import "./MiniCard.css";
 
 const truncateText = (text, length) => {
@@ -129,7 +130,9 @@ const MiniCard = ({ song, onClick, hideAlbum = false }) => {
 
   return (
     <div
-      className="mini-card flex items-center justify-between p-2 rounded-sm cursor-pointer"
+      className={`mini-card flex items-center justify-between p-2 rounded-sm cursor-pointer ${
+        currentSong?.uri === song.uri && currentSong?.name === song.name
+      }`}
       onClick={onClick}
     >
       <div
@@ -162,10 +165,17 @@ const MiniCard = ({ song, onClick, hideAlbum = false }) => {
           <h3 className="font-normal text-sm">{truncateText(song.name, 40)}</h3>
           <p className="text-gray-400 text-sm">
             {Array.isArray(song.artists)
-              ? song.artists
-                  .slice(0, 2)
-                  .map((artist) => artist.name)
-                  .join(", ")
+              ? song.artists.slice(0, 2).map((artist, index) => (
+                  <Link
+                    key={artist.id}
+                    to={`/artist/${artist.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="hover:underline text-white"
+                  >
+                    {artist.name}
+                    {index < song.artists.length - 1 ? ", " : ""}
+                  </Link>
+                ))
               : "Unknown Artist"}
           </p>
         </div>
@@ -179,7 +189,6 @@ const MiniCard = ({ song, onClick, hideAlbum = false }) => {
         </div>
       )}
 
-      {/* Right: Add button + duration */}
       <div className="flex items-center gap-2 w-1/3 justify-end mr-2 relative">
         <button
           onClick={(e) => {

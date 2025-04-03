@@ -32,6 +32,8 @@ const SongBar = () => {
     volume,
     nextSong,
     prevSong,
+    shuffleSongs,
+    isShuffling,
   } = useAudio();
 
   const disabled = !currentSong;
@@ -39,7 +41,7 @@ const SongBar = () => {
   const { user, token } = useSelector((state) => state.account);
   const [playlists, setPlaylists] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [isInPlaylist, setIsInPlaylist] = useState(false);
+  const [addedToPlaylists, setAddedToPlaylists] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -56,44 +58,28 @@ const SongBar = () => {
 
       if (data.success) {
         setPlaylists(data.playlists);
-        checkIfSongInPlaylist(data.playlists);
+        const added = data.playlists
+          .filter((p) => p.songs.some((s) => s._id === currentSongId))
+          .map((p) => p._id);
+        setAddedToPlaylists(added);
       }
     } catch (error) {
       console.error("Error fetching playlists:", error);
     }
   };
 
-  const checkIfSongInPlaylist = (allPlaylists) => {
-    if (!currentSongId) return;
-    const songExists = allPlaylists.some((pl) =>
-      pl.songs.some((s) => s._id === currentSongId)
-    );
-    setIsInPlaylist(songExists);
-  };
-
   const togglePlaylistSong = async (playlistId) => {
-    if (!currentSongId) {
-      alert("Song id is missing from currentSong!");
-      return;
-    }
+    if (!currentSongId) return;
 
-    const playlist = playlists.find((pl) => pl._id === playlistId);
-    if (!playlist) {
-      console.error("Could not find playlist with _id =", playlistId);
-      return;
-    }
-
-    const isSongInPlaylist = playlist.songs.some(
-      (s) => s._id === currentSongId
-    );
-
-    const endpoint = isSongInPlaylist ? "remove-song" : "add-song";
+    const isAdded = addedToPlaylists.includes(playlistId);
+    const endpoint = isAdded ? "remove-song" : "add-song";
 
     const requestBody = {
       songId: currentSongId,
       name: currentSong.name,
       uri: currentSong.uri,
       artists: currentSong.artists || [],
+      album: currentSong.album || "Unknown Album",
       albumCover: currentSong.albumCover || "",
       duration_ms: currentSong.duration_ms || 0,
     };
@@ -113,7 +99,11 @@ const SongBar = () => {
 
       const data = await response.json();
       if (data.success) {
-        fetchPlaylists();
+        setAddedToPlaylists((prev) =>
+          isAdded
+            ? prev.filter((id) => id !== playlistId)
+            : [...new Set([...prev, playlistId])]
+        );
       } else {
         alert(data.message);
       }
@@ -121,6 +111,7 @@ const SongBar = () => {
       console.error("Error updating playlist:", error);
     }
   };
+
   const formatRawMs = (ms) => {
     const totalSeconds = Math.floor((ms || 0) / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -163,7 +154,7 @@ const SongBar = () => {
             onClick={() => !disabled && setDropdownOpen(!dropdownOpen)}
             disabled={disabled}
           >
-            {isInPlaylist ? (
+            {addedToPlaylists.length > 0 ? (
               <BsCheckCircleFill className="text-green-400 text-lg transform hover:scale-110" />
             ) : (
               <CiCirclePlus className="text-white text-2xl transform hover:scale-110" />
@@ -172,20 +163,28 @@ const SongBar = () => {
           {!disabled && dropdownOpen && (
             <div className="absolute bottom-full mb-2 right-0 bg-black shadow-md rounded-md w-40 p-2 z-50">
               {playlists.length > 0 ? (
-                playlists.map((pl) => (
-                  <button
-                    key={pl._id}
-                    className="block w-full text-left text-white px-2 py-1 hover:bg-gray-800"
-                    onClick={() => {
-                      togglePlaylistSong(pl._id);
-                      setDropdownOpen(false);
-                    }}
-                  >
-                    {pl.songs.some((s) => s._id === currentSongId)
-                      ? `Remove from ${pl.name}`
-                      : `Add to ${pl.name}`}
-                  </button>
-                ))
+                playlists.map((pl) => {
+                  const isAdded = addedToPlaylists.includes(pl._id);
+                  return (
+                    <button
+                      key={pl._id}
+                      className="block w-full text-left text-white px-2 py-1 hover:bg-gray-800 flex justify-between items-center"
+                      onClick={() => {
+                        togglePlaylistSong(pl._id);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <span className="text-sm">
+                        {isAdded
+                          ? `Remove from ${pl.name}`
+                          : `Add to ${pl.name}`}
+                      </span>
+                      {isAdded && (
+                        <BsCheckCircleFill className="text-green-500 ml-2" />
+                      )}
+                    </button>
+                  );
+                })
               ) : (
                 <p className="text-gray-400 text-sm">No playlists found</p>
               )}
@@ -197,10 +196,12 @@ const SongBar = () => {
       <div className="flex flex-col items-center w-[40%] min-w-[300px]">
         <div className="flex justify-center gap-5 items-center mt-1">
           <LuShuffle
-            className={`text-lg ${
-              disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
-            }`}
+            onClick={shuffleSongs}
+            className={`text-lg cursor-pointer ${
+              isShuffling ? "text-green-400" : "text-white"
+            } ${disabled ? "opacity-30 cursor-not-allowed" : ""}`}
           />
+
           <IoIosSkipBackward
             onClick={() => !disabled && prevSong()}
             className={`text-2xl ${

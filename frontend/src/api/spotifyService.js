@@ -27,7 +27,6 @@ export const fetchSongs = async (query, token) => {
   }
 };
 
-
 export const fetchCategories = async (token) => {
   try {
     console.log("📡 Fetching categories from Spotify...");
@@ -38,10 +37,10 @@ export const fetchCategories = async (token) => {
       },
     });
 
-    console.log("✅ Categories Fetched:", response.data.categories.items);
+    console.log("Categories Fetched:", response.data.categories.items);
     return response.data.categories.items || [];
   } catch (error) {
-    console.error("❌ Error fetching categories:", error);
+    console.error("Error fetching categories:", error);
     return [];
   }
 };
@@ -52,7 +51,7 @@ export const fetchRecommendedSongs = async (
   market = "US"
 ) => {
   if (!token || !seedTrackId) {
-    console.warn("⚠️ Missing access token or seed track ID.");
+    console.warn("Missing access token or seed track ID.");
     return [];
   }
 
@@ -63,17 +62,17 @@ export const fetchRecommendedSongs = async (
       `https://api.spotify.com/v1/recommendations`,
       {
         params: {
-          seed_tracks: seedTrackId, // ✅ Pass multiple track IDs if possible
-          seed_artists: "4NHQUGzhtTLFvgF5SZesLK", // ✅ Example artist ID for better recommendations
+          seed_tracks: seedTrackId,
+          seed_artists: "4NHQUGzhtTLFvgF5SZesLK",
           limit: 5,
-          market: market, // ✅ Add market parameter
+          market: market,
         },
         headers: { Authorization: `Bearer ${token}` },
       }
     );
 
     if (!response.data.tracks || response.data.tracks.length === 0) {
-      console.warn("⚠️ No recommendations found for track ID:", seedTrackId);
+      console.warn("No recommendations found for track ID:", seedTrackId);
       return [];
     }
 

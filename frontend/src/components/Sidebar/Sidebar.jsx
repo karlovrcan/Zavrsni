@@ -300,7 +300,7 @@ const Sidebar = () => {
           )}
 
           <div className="your_library flex flex-col gap-1 overflow-y-auto pr-2 h-full">
-            {!user ? (
+            {user?.role === "guest" ? (
               <div className="tertiary_bg rounded-lg px-4 py-6">
                 <p className="font-bold">Create your first playlist.</p>
                 <p className="font-semibold">It's easy, we'll help you.</p>

@@ -21,7 +21,7 @@ import SpotifyPlaylist from "./components/Playlist/SpotifyPlaylist";
 import ArtistProfile from "./components/Profile/ArtistProfile";
 import Album from "./components/Album/Album";
 import Profile from "./components/Profile/Profile";
-
+import Admin from "./components/Admin/Admin";
 import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
 import { fetchSongs } from "./api/spotifyService";
 
@@ -109,6 +109,7 @@ const AppContent = () => {
         <Route path="/spotify-playlist/:id" element={<SpotifyPlaylist />} />
         <Route path="/artist/:id" element={<ArtistProfile />} />
         <Route path="/album/:id" element={<Album />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
 
       {!hideNavAndSongBar && <Songbar />}

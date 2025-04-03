@@ -19,7 +19,7 @@ router.post("/", verifyToken, async (req, res) => {
     }
 
     const newPlaylist = new Playlist({
-      userId: req.userId,
+      userId: req.user.id,
       name,
     });
     await newPlaylist.save();
@@ -37,7 +37,7 @@ router.post("/", verifyToken, async (req, res) => {
  */
 router.get("/", verifyToken, async (req, res) => {
   try {
-    const playlists = await Playlist.find({ userId: req.userId }).populate(
+    const playlists = await Playlist.find({ userId: req.user.id }).populate(
       "userId",
       "username"
     );

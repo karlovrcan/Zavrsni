@@ -10,8 +10,13 @@ const userSchema = new mongoose.Schema({
   year: { type: String, required: true },
   bio: { type: String, default: "" },
   avatar: { type: String, default: "" },
+  role: {
+    type: String,
+    enum: ["guest", "user", "admin"],
+    default: "user",
+  },
 });
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;

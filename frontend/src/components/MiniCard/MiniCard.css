@@ -29,6 +29,17 @@
 .mini-card:hover .mini-play_btn {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.mini-card.active .mini-play_btn {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.mini-card.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .add-icon-button {
@@ -36,5 +47,9 @@
 }
 
 .mini-card:hover .add-icon-button {
+  opacity: 1;
+}
+
+.mini-card.active .add-icon-button {
   opacity: 1;
 }

@@ -13,7 +13,7 @@ router.post("/", verifyToken, async (req, res) => {
   const { spotifyId, name, image, artists } = req.body;
 
   try {
-    const existing = await Album.findOne({ spotifyId, addedBy: req.userId });
+    const existing = await Album.findOne({ spotifyId, addedBy: req.user._id });
     if (existing) {
       return res.status(200).json({ success: true, album: existing });
     }
@@ -23,7 +23,7 @@ router.post("/", verifyToken, async (req, res) => {
       name,
       image,
       artists,
-      addedBy: req.userId,
+      addedBy: req.user._id,
     });
 
     await album.save();
@@ -41,7 +41,7 @@ router.post("/", verifyToken, async (req, res) => {
  */
 router.get("/", verifyToken, async (req, res) => {
   try {
-    const albums = await Album.find({ addedBy: req.userId });
+    const albums = await Album.find({ addedBy: req.user._id });
     res.status(200).json({ success: true, albums });
   } catch (err) {
     console.error("❌ Error fetching albums:", err);
@@ -54,7 +54,7 @@ router.get("/:id", verifyToken, async (req, res) => {
   try {
     const album = await Album.findOne({
       _id: req.params.id,
-      addedBy: req.userId,
+      addedBy: req.user._id,
     });
 
     if (!album) {
@@ -80,7 +80,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const deleted = await Album.findOneAndDelete({
       _id: req.params.id,
-      addedBy: req.userId,
+      addedBy: req.user._id,
     });
 
     if (!deleted) {

@@ -31,16 +31,19 @@ export const AudioProvider = ({ children }) => {
   const [songIndex, setSongIndex] = useState(0);
   const [songs, setSongs] = useState([]);
   const [recommendedSongs, setRecommendedSongs] = useState([]);
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [originalSongs, setOriginalSongs] = useState([]);
+  const [currentPlaylistId, setCurrentPlaylistId] = useState(null);
 
   // Spotify & Redux references
   const [deviceId, setDeviceId] = useState(null);
   const playerRef = useRef(null);
   const dispatch = useDispatch();
+  const hasAdvancedRef = useRef(false);
   const accessToken = useSelector((state) => state.spotify.accessToken);
 
-  // ───────────────────────────────────────────────────────────────────
   // Helpers
-  // ───────────────────────────────────────────────────────────────────
+
   const formatTime = (timeInSeconds) => {
     if (!timeInSeconds || isNaN(timeInSeconds)) return "00:00";
     const minutes = Math.floor(timeInSeconds / 60);
@@ -170,9 +173,17 @@ export const AudioProvider = ({ children }) => {
             duration_ms: trackDurationMs,
           });
 
-          // If near the end of track
-          if (!paused && trackDurationMs - position < 1000) {
+          if (
+            !paused &&
+            trackDurationMs - position < 1000 &&
+            !hasAdvancedRef.current
+          ) {
+            hasAdvancedRef.current = true;
             nextSong();
+
+            setTimeout(() => {
+              hasAdvancedRef.current = false;
+            }, 2000);
           }
         });
 
@@ -246,6 +257,12 @@ export const AudioProvider = ({ children }) => {
   // ───────────────────────────────────────────────────────────────────
   // 3) Playback Controls
   // ───────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (currentPlaylistId) {
+      const savedShuffle = getShuffleStatus(currentPlaylistId);
+      setIsShuffling(savedShuffle);
+    }
+  }, [currentPlaylistId]);
 
   /**
    * Start playing a brand-new track from 0
@@ -359,6 +376,52 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
+  //Shuffling the songs
+
+  const shuffleSongs = () => {
+    if (!songs || songs.length <= 1) return;
+    if (!currentSong || !currentPlaylistId) return;
+
+    if (!isShuffling) {
+      setOriginalSongs(songs);
+      const shuffled = [...songs].sort(() => Math.random() - 0.5);
+      const currentIndex = shuffled.findIndex((s) => s.uri === currentSong.uri);
+      setSongs(shuffled);
+      setSongIndex(currentIndex !== -1 ? currentIndex : 0);
+      setIsShuffling(true);
+      setShuffleStatus(currentPlaylistId, true); // ✅ save state
+    } else {
+      const currentSongIndexInOriginal = originalSongs.findIndex(
+        (s) => s.uri === currentSong.uri
+      );
+
+      setSongs(originalSongs);
+
+      // We keep the current song playing, but update the index to reflect its true place
+      if (currentSongIndexInOriginal !== -1) {
+        setSongIndex(currentSongIndexInOriginal);
+      } else {
+        setSongIndex(0); // fallback
+      }
+
+      setIsShuffling(false);
+      setShuffleStatus(currentPlaylistId, false);
+    }
+  };
+
+  const getShuffleStatus = (playlistId) => {
+    const saved = localStorage.getItem("shuffledPlaylists");
+    const parsed = saved ? JSON.parse(saved) : {};
+    return parsed[playlistId] === true;
+  };
+
+  const setShuffleStatus = (playlistId, value) => {
+    const saved = localStorage.getItem("shuffledPlaylists");
+    const parsed = saved ? JSON.parse(saved) : {};
+    parsed[playlistId] = value;
+    localStorage.setItem("shuffledPlaylists", JSON.stringify(parsed));
+  };
+
   // ───────────────────────────────────────────────────────────────────
   // 4) Volume
   // ───────────────────────────────────────────────────────────────────
@@ -399,6 +462,12 @@ export const AudioProvider = ({ children }) => {
         // Volume
         volume,
         changeVolume,
+
+        //Shuffle
+        shuffleSongs,
+        isShuffling,
+        setCurrentPlaylistId,
+        getShuffleStatus,
 
         // Next/Prev
         nextSong,
