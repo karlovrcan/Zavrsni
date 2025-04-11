@@ -3,7 +3,7 @@ import { FiSearch } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom"; // ✅ Import `useNavigate`
 import { FaUser } from "react-icons/fa";
-import { GoHomeFill } from "react-icons/go";
+import { GoHome } from "react-icons/go";
 import logo from "../assets/logo.svg";
 import { userLogout } from "../states/Actors/userActors";
 
@@ -40,7 +40,7 @@ const Navbar = ({ onSearch }) => {
         <div className="flex-grow flex items-center justify-start px-9 space-x-4 ">
           <Link to="/" className="text-white text-2xl">
             <div className="tertiary_bg py-2 px-2 rounded-[50%] transform transition duration-200 hover:scale-110">
-              <GoHomeFill />
+              <GoHome />
             </div>
           </Link>
 
@@ -86,7 +86,7 @@ const Navbar = ({ onSearch }) => {
             <div className="relative">
               <button
                 onClick={toggleDropdown}
-                className="w-10 h-10 rounded-full overflow-hidden border border-white flex items-center justify-center bg-neutral-800 hover:ring-2 hover:scale-105 transition-all"
+                className="w-10 h-10 rounded-full overflow-hidden border border-white flex items-center justify-center bg-neutral-800 hover:ring-2 hover:scale-105 transition-all z-[2000]"
               >
                 {user?.avatar ? (
                   <img

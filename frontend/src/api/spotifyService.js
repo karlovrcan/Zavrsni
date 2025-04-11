@@ -2,9 +2,12 @@ import axios from "axios";
 
 const API_BASE_URL = "https://api.spotify.com/v1";
 
+/**
+ * Searching songs, artists, albums, playlists
+ */
 export const fetchSongs = async (query, token) => {
   try {
-    const response = await axios.get(`https://api.spotify.com/v1/search`, {
+    const response = await axios.get(`${API_BASE_URL}/search`, {
       params: {
         q: query,
         type: "track,artist,album,playlist",
@@ -27,16 +30,17 @@ export const fetchSongs = async (query, token) => {
   }
 };
 
+/**
+ * Fetching categories from Spotify
+ */
 export const fetchCategories = async (token) => {
   try {
     console.log("📡 Fetching categories from Spotify...");
-
     const response = await axios.get(`${API_BASE_URL}/browse/categories`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-
     console.log("Categories Fetched:", response.data.categories.items);
     return response.data.categories.items || [];
   } catch (error) {
@@ -45,44 +49,61 @@ export const fetchCategories = async (token) => {
   }
 };
 
-export const fetchRecommendedSongs = async (
-  seedTrackId,
-  token,
-  market = "US"
-) => {
-  if (!token || !seedTrackId) {
-    console.warn("Missing access token or seed track ID.");
-    return [];
-  }
-
-  console.log("📡 Fetching recommendations for seed track ID:", seedTrackId);
-
+export const fetchCategoryPlaylists = async (categoryId, accessToken) => {
   try {
-    const response = await axios.get(
-      `https://api.spotify.com/v1/recommendations`,
+    console.log("🔐 Using accessToken:", accessToken);
+
+    const response = await fetch(
+      `https://api.spotify.com/v1/browse/categories/${categoryId}/playlists?limit=20&country=US`,
       {
-        params: {
-          seed_tracks: seedTrackId,
-          seed_artists: "4NHQUGzhtTLFvgF5SZesLK",
-          limit: 5,
-          market: market,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
         },
-        headers: { Authorization: `Bearer ${token}` },
       }
     );
-
-    if (!response.data.tracks || response.data.tracks.length === 0) {
-      console.warn("No recommendations found for track ID:", seedTrackId);
-      return [];
-    }
-
-    console.log("✅ Recommended Songs Fetched:", response.data.tracks);
-    return response.data.tracks;
+    return await response.json();
   } catch (error) {
-    console.error(
-      "❌ Error fetching recommended songs:",
-      error.response?.data || error.message
-    );
-    return [];
+    console.error("Error fetching category playlists:", error);
+    return null;
   }
+};
+
+export const fetchRecommendedSongs = async ({ trackId }, token) => {
+  const params = {
+    limit: 5,
+    market: "from_token",
+    seed_tracks: trackId,
+  };
+
+  const queryString = new URLSearchParams(params).toString();
+
+  const response = await fetch(
+    `https://api.spotify.com/v1/recommendations?${queryString}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (response.status === 404) {
+    // Retry with fallback
+    console.warn("🔁 Retrying with fallback market: US");
+    const fallbackQuery = new URLSearchParams({
+      ...params,
+      market: "US",
+    }).toString();
+
+    const fallbackRes = await fetch(
+      `https://api.spotify.com/v1/recommendations?${fallbackQuery}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return fallbackRes.ok ? await fallbackRes.json().then((r) => r.tracks) : [];
+  }
+
+  return response.ok ? await response.json().then((r) => r.tracks) : [];
 };

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const PlaylistSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   name: { type: String, required: true },
+  featured: { type: Boolean, default: false },
   songs: [
     {
       _id: { type: String, required: true },

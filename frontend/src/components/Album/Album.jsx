@@ -10,22 +10,29 @@ import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
 import { Vibrant } from "node-vibrant/browser";
 
+/**
+ * Album component fetches a specific album from Spotify, shows its tracks, and
+ * allows the user to add/remove it from the local DB “saved albums.”
+ */
 const Album = () => {
   const { token } = useSelector((state) => state.account);
   const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
+
   const [albumData, setAlbumData] = useState(null);
   const [bgColor, setBgColor] = useState("#000000");
-  const { setSongIndex, playPauseSong, setSongs } = useAudio();
   const [isSaved, setIsSaved] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { setSongIndex, playPauseSong, setSongs } = useAudio();
 
   useEffect(() => {
     const fetchAlbum = async () => {
       if (!id || !accessToken || !token) return;
 
       try {
+        // Spotify album fetch
         const spotifyRes = await fetch(
           `https://api.spotify.com/v1/albums/${id}`,
           {
@@ -34,13 +41,13 @@ const Album = () => {
         );
         const fetchedAlbumData = await spotifyRes.json();
 
-        if (!fetchedAlbumData || fetchedAlbumData.error) {
-          console.error("Invalid album data from Spotify", fetchedAlbumData);
+        if (fetchedAlbumData.error) {
+          console.error("Invalid album data from Spotify:", fetchedAlbumData);
           return;
         }
-
         setAlbumData(fetchedAlbumData);
 
+        // Vibrant color
         const coverImage = fetchedAlbumData?.images?.[0]?.url;
         if (coverImage) {
           Vibrant.from(coverImage)
@@ -50,18 +57,17 @@ const Album = () => {
                 setBgColor(palette.Vibrant.hex);
               }
             })
-            .catch((err) =>
-              console.error("Error extracting palette with Vibrant:", err)
-            );
+            .catch((err) => console.error("Vibrant error:", err));
         }
       } catch (err) {
-        console.error("❌ Error loading album:", err);
+        console.error("Error fetching album data:", err);
       }
     };
 
     fetchAlbum();
   }, [id, accessToken, token]);
 
+  // Check if the album is saved in your local DB
   useEffect(() => {
     const checkIfSaved = async () => {
       if (!token || !albumData?.id) return;
@@ -85,6 +91,7 @@ const Album = () => {
     checkIfSaved();
   }, [albumData, token]);
 
+  // Fade in effect
   useEffect(() => {
     if (albumData) {
       setShowContent(false);
@@ -140,7 +147,6 @@ const Album = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-
       if (data.success) {
         const match = data.albums.find((a) => a.spotifyId === albumData.id);
         if (!match) return;
@@ -152,7 +158,6 @@ const Album = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
         const deleteData = await deleteRes.json();
         if (deleteData.success) {
           setIsSaved(false);
@@ -166,29 +171,24 @@ const Album = () => {
     }
   };
 
+  // Convert tracks from albumData => array of songs with .uri
   const formattedTracks =
-    albumData?.tracks?.items
-      ?.map((item) => {
-        const track = item?.track || item;
-        if (!track) return null;
-        return {
-          id: track.id,
-          uri: track.uri,
-          name: track.name,
-          artists: track.artists,
-          album: albumData.name || "Unknown Album",
-          albumCover: albumData.images?.[0]?.url || "",
-          duration_ms: track.duration_ms,
-        };
-      })
-      ?.filter(Boolean) || [];
+    albumData?.tracks?.items?.map((track) => ({
+      uri: track.uri,
+      name: track.name,
+      artists: track.artists,
+      album: albumData.name || "Unknown Album",
+      albumId: albumData.id,
+      albumCover: albumData.images?.[0]?.url || "",
+      duration_ms: track.duration_ms,
+    })) || [];
 
   const albumCoverImage = albumData?.images?.[0]?.url || "";
 
   return (
     <Layout>
       <div className="relative h-[calc(100vh-155px)]">
-        {/* Spinner Layer */}
+        {/* Loading spinner */}
         {isLoading && (
           <div className="absolute inset-0 flex justify-center items-center z-50 bg-black">
             <div className="flex flex-col items-center gap-4">
@@ -198,7 +198,7 @@ const Album = () => {
           </div>
         )}
 
-        {/* Album Content with Fade-In */}
+        {/* Main album content with fade-in */}
         <div
           className={`transition-opacity duration-500 h-full ${
             showContent ? "opacity-100" : "opacity-0"
@@ -218,14 +218,20 @@ const Album = () => {
                   className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
                 />
               </div>
-              <div className="w-3/4 pl-2 font-extrabold text-7xl text-white">
-                {albumData?.name || "Unnamed Album"}
+
+              <div className="w-3/4 flex items-end pl-6 overflow-hidden">
+                <h1
+                  className="text-white font-extrabold w-full break-words text-[clamp(2.5rem,5vw,2rem)] leading-tight"
+                  title={albumData?.name}
+                >
+                  {albumData?.name || "Unnamed Album"}
+                </h1>
               </div>
             </div>
 
-            {/* Tracks Section */}
             <div className="w-full bg-black/30 pb-[75px]">
               <div className="flex items-center p-4 gap-4 mb-6 mt-6">
+                {/* Play the first track of the album */}
                 <button
                   className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
                   onClick={() => {
@@ -238,10 +244,12 @@ const Album = () => {
                 >
                   <IoIosPlay className="text-5xl text-black pl-1" />
                 </button>
+
+                {/* Save/remove album from the sidebar */}
                 <button
-                  onClick={() => {
-                    isSaved ? deleteAlbumFromSidebar() : saveAlbumToSidebar();
-                  }}
+                  onClick={() =>
+                    isSaved ? deleteAlbumFromSidebar() : saveAlbumToSidebar()
+                  }
                   className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
                     isSaved ? "text-[#1db954]" : "text-white"
                   }`}
@@ -250,22 +258,25 @@ const Album = () => {
                 </button>
               </div>
 
+              {/* Table header */}
               <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-                <p className="font-semibold w-1/3 text-center pr-[100px]">
+                <p className="font-semibold w-1/3 text-center pr-[70px]">
                   Title / Author
                 </p>
-                <p className="font-semibold w-1/3 text-center pr-2">Album</p>
+                <p className="font-semibold w-1/3 text-center ml-[60px]">
+                  Album
+                </p>
                 <div className="w-1/3 flex justify-end pr-6">
                   <IoTimeOutline className="text-xl " />
                 </div>
               </div>
-
               <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
 
+              {/* Album tracks list */}
               <div className="flex flex-col gap-2 p-4">
                 {formattedTracks.map((track, index) => (
                   <MiniCard
-                    key={`${track.id}-${index}`}
+                    key={track.uri || index}
                     song={track}
                     onClick={() => {
                       setSongIndex(index);

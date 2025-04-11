@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useContext } from "react"; // ✅ Added useContext
+// Login.jsx
+
+import React, { useEffect, useState, useContext } from "react";
 import { toast } from "react-toastify";
 import logo from "../../assets/logo.svg";
 import "./login.css";
@@ -15,8 +17,10 @@ const Login = () => {
     password: "",
   });
   const navigate = useNavigate();
+
+  // 1) CHANGED: read "access_token" instead of "token"
   const [searchParams] = useSearchParams();
-  const spotifyToken = searchParams.get("token");
+  const spotifyToken = searchParams.get("access_token");
 
   useEffect(() => {
     const verifySpotifyToken = async () => {
@@ -38,6 +42,7 @@ const Login = () => {
       }
     };
 
+    // 2) If we found `access_token`, store it and verify
     if (spotifyToken) {
       sessionStorage.setItem("spotify_access_token", spotifyToken);
       dispatch(handleSpotifyCallback(spotifyToken));

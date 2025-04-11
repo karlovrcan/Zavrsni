@@ -34,6 +34,7 @@ export const AudioProvider = ({ children }) => {
   const [isShuffling, setIsShuffling] = useState(false);
   const [originalSongs, setOriginalSongs] = useState([]);
   const [currentPlaylistId, setCurrentPlaylistId] = useState(null);
+  const [recentlyPlayed, setRecentlyPlayed] = useState([]);
 
   // Spotify & Redux references
   const [deviceId, setDeviceId] = useState(null);
@@ -41,9 +42,9 @@ export const AudioProvider = ({ children }) => {
   const dispatch = useDispatch();
   const hasAdvancedRef = useRef(false);
   const accessToken = useSelector((state) => state.spotify.accessToken);
+  const token = useSelector((state) => state.account.token);
 
-  // Helpers
-
+  // Helper to format time in mm:ss
   const formatTime = (timeInSeconds) => {
     if (!timeInSeconds || isNaN(timeInSeconds)) return "00:00";
     const minutes = Math.floor(timeInSeconds / 60);
@@ -60,14 +61,19 @@ export const AudioProvider = ({ children }) => {
     let nextTrack = null;
 
     if (songs.length > 0 && songIndex < songs.length - 1) {
+      // 1) If we have more songs in the current list
       nextTrack = songs[songIndex + 1];
       setSongIndex(songIndex + 1);
     } else if (recommendedSongs.length > 0) {
+      // 2) Otherwise, if we still have recommended songs left
       nextTrack = recommendedSongs[0];
       setRecommendedSongs((prev) => prev.slice(1));
     } else if (currentSong?.id && recommendedSongs.length === 0) {
-      console.log("🔄 Fetching new recommendations...");
-      await getRecommendedSongs(currentSong.id);
+      // 3) If no recommended left, try fetching new ones for the current track
+      console.log("🔄 Fetching new recommendations for:", currentSong.id);
+
+      // We'll just do track-based rec
+      await getRecommendedSongs({ trackId: currentSong.id });
       return;
     }
 
@@ -76,32 +82,29 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  /**
-   * Fetch recommended songs for a given seed track ID
-   */
-  const getRecommendedSongs = async (seedTrackId) => {
-    if (!accessToken) return;
-    if (!seedTrackId || seedTrackId.length !== 22) return;
-
-    try {
-      const recommendations = await fetchRecommendedSongs(
-        seedTrackId,
-        accessToken
-      );
-      setRecommendedSongs(recommendations);
-    } catch (err) {
-      console.error("❌ Error fetching recommended songs:", err);
+  const getRecommendedSongs = async (seeds) => {
+    if (!accessToken) {
+      console.warn("Missing access token or seeds for getRecommendedSongs.");
+      return [];
     }
+    if (!seeds || (!seeds.trackId && !seeds.artistId && !seeds.genres)) {
+      console.warn(
+        "No valid seeds provided. Must pass at least a trackId, artistId, or genres."
+      );
+      return [];
+    }
+
+    console.log("🎧 getRecommendedSongs with seeds:", seeds);
+    const recommended = await fetchRecommendedSongs(seeds, accessToken);
+    setRecommendedSongs(recommended);
+    return recommended;
   };
 
-  // ───────────────────────────────────────────────────────────────────
   // 1) Initialize Spotify Player
-  // ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!accessToken) return;
     if (playerRef.current) return; // Already set up
 
-    // Inject the Spotify SDK script if not already present
     if (!window.Spotify) {
       const script = document.createElement("script");
       script.src = "https://sdk.scdn.co/spotify-player.js";
@@ -153,7 +156,7 @@ export const AudioProvider = ({ children }) => {
           const track = state.track_window.current_track;
           const trackDurationMs = track.duration_ms || fallbackDuration;
 
-          // Update state
+          // Update playback state
           setIsPlaying(!paused);
           setDurationMs(trackDurationMs);
           setCurrTime(formatTime(position / 1000));
@@ -163,7 +166,7 @@ export const AudioProvider = ({ children }) => {
           setLocalCurrTime(position);
           setLocalProgress((position / trackDurationMs) * 100);
 
-          // Change song info
+          // Update currentSong
           setCurrentSong({
             id: track.id,
             uri: track.uri,
@@ -173,6 +176,7 @@ export const AudioProvider = ({ children }) => {
             duration_ms: trackDurationMs,
           });
 
+          // If near the end, auto-advance
           if (
             !paused &&
             trackDurationMs - position < 1000 &&
@@ -180,7 +184,6 @@ export const AudioProvider = ({ children }) => {
           ) {
             hasAdvancedRef.current = true;
             nextSong();
-
             setTimeout(() => {
               hasAdvancedRef.current = false;
             }, 2000);
@@ -206,13 +209,10 @@ export const AudioProvider = ({ children }) => {
     };
   }, [accessToken, dispatch]);
 
-  // ───────────────────────────────────────────────────────────────────
-  // 2) Local Timer for Fallback Tracking (no getCurrentState)
-  // ───────────────────────────────────────────────────────────────────
+  // 2) Local Timer for Fallback Tracking
   useEffect(() => {
     let localInterval = null;
 
-    // If we’re playing, increment local time every second
     if (isPlaying) {
       localInterval = setInterval(() => {
         setLocalCurrTime((prevMs) => {
@@ -225,7 +225,7 @@ export const AudioProvider = ({ children }) => {
           }
           setLocalProgress(nextProgress);
 
-          // If near the end, proceed to nextSong
+          // If near end, nextSong
           if (durationMs && nextMs >= durationMs - 1000) {
             nextSong();
           }
@@ -234,19 +234,15 @@ export const AudioProvider = ({ children }) => {
       }, 1000);
     }
 
-    // Cleanup timer
     return () => {
       if (localInterval) clearInterval(localInterval);
     };
-  }, [isPlaying, durationMs, nextSong]);
+  }, [isPlaying, durationMs]);
 
   const prevTrackRef = useRef(null);
 
   useEffect(() => {
-    // If no valid track, do nothing
     if (!currentSong?.id) return;
-
-    // If the track ID actually changed from the previous
     if (prevTrackRef.current !== currentSong.id) {
       setLocalCurrTime(0);
       setLocalProgress(0);
@@ -254,9 +250,7 @@ export const AudioProvider = ({ children }) => {
     }
   }, [currentSong?.id]);
 
-  // ───────────────────────────────────────────────────────────────────
   // 3) Playback Controls
-  // ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (currentPlaylistId) {
       const savedShuffle = getShuffleStatus(currentPlaylistId);
@@ -264,18 +258,37 @@ export const AudioProvider = ({ children }) => {
     }
   }, [currentPlaylistId]);
 
-  /**
-   * Start playing a brand-new track from 0
-   */
+  useEffect(() => {
+    const fetchRecentlyPlayed = async () => {
+      if (!token) return;
+
+      try {
+        const res = await fetch("http://localhost:5001/api/recently-played", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setRecentlyPlayed(data.recentlyPlayed);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recently played:", err);
+      }
+    };
+
+    fetchRecentlyPlayed();
+  }, [token]);
+
   const playPauseSong = async (song) => {
     if (!song || !song.uri) {
       console.error("❌ Invalid song:", song);
       return;
     }
+
     if (!deviceId) {
       console.warn("⚠️ No deviceId yet. Wait for the player to be ready.");
       return;
     }
+    // Recently played songs
 
     console.log("🎵 Starting track:", song.name, "| Track ID:", song.id);
     setCurrentSong(song);
@@ -283,8 +296,20 @@ export const AudioProvider = ({ children }) => {
     setLocalCurrTime(0);
     setLocalProgress(0);
 
+    if (song && token) {
+      fetch("http://localhost:5001/api/recently-played", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ song }),
+      }).catch((err) =>
+        console.error("Failed to save recently played song:", err)
+      );
+    }
+
     try {
-      // Tell Spotify to play
       await fetch(
         `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
         {
@@ -297,18 +322,15 @@ export const AudioProvider = ({ children }) => {
         }
       );
 
-      // If no local playlist, fetch recommended
+      // If no local playlist, fetch recommended for new track
       if (songs.length === 0 && song.id) {
-        getRecommendedSongs(song.id);
+        getRecommendedSongs({ trackId: song.id });
       }
     } catch (error) {
       console.error("❌ Error playing song:", error);
     }
   };
 
-  /**
-   * Pause or resume the current track
-   */
   const togglePlayPause = async () => {
     if (!deviceId || !playerRef.current) {
       console.warn("⚠️ Can't toggle; player or deviceId not ready.");
@@ -329,33 +351,24 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  /**
-   * Manually seek to a new position in the current track
-   */
   const handleSeek = async (percent) => {
-    // Preliminary checks
     if (!playerRef.current) {
       console.warn("⚠️ playerRef is null. Not seeking yet.");
       return;
     }
-
     if (!deviceId) {
       console.warn("⚠️ deviceId missing. Not seeking yet.");
       return;
     }
-
     if (!isPlaying && !currentSong) {
       console.warn("⚠️ No track loaded or playing. Not seeking yet.");
       return;
     }
-
     if (durationMs === 0) {
       console.warn("⚠️ durationMs=0. Not seeking yet.");
       return;
     }
-
     const newPositionMs = Math.round((percent / 100) * durationMs);
-
     try {
       await playerRef.current.seek(newPositionMs);
     } catch (err) {
@@ -363,9 +376,6 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  /**
-   * Skip to the previous song in local array
-   */
   const prevSong = () => {
     if (songs.length === 0) return;
     const prevIndex = songIndex > 0 ? songIndex - 1 : 0;
@@ -376,8 +386,7 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  //Shuffling the songs
-
+  // SHUFFLING
   const shuffleSongs = () => {
     if (!songs || songs.length <= 1) return;
     if (!currentSong || !currentPlaylistId) return;
@@ -389,21 +398,17 @@ export const AudioProvider = ({ children }) => {
       setSongs(shuffled);
       setSongIndex(currentIndex !== -1 ? currentIndex : 0);
       setIsShuffling(true);
-      setShuffleStatus(currentPlaylistId, true); // ✅ save state
+      setShuffleStatus(currentPlaylistId, true);
     } else {
       const currentSongIndexInOriginal = originalSongs.findIndex(
         (s) => s.uri === currentSong.uri
       );
-
       setSongs(originalSongs);
-
-      // We keep the current song playing, but update the index to reflect its true place
       if (currentSongIndexInOriginal !== -1) {
         setSongIndex(currentSongIndexInOriginal);
       } else {
-        setSongIndex(0); // fallback
+        setSongIndex(0);
       }
-
       setIsShuffling(false);
       setShuffleStatus(currentPlaylistId, false);
     }
@@ -422,14 +427,11 @@ export const AudioProvider = ({ children }) => {
     localStorage.setItem("shuffledPlaylists", JSON.stringify(parsed));
   };
 
-  // ───────────────────────────────────────────────────────────────────
-  // 4) Volume
-  // ───────────────────────────────────────────────────────────────────
+  // 4) VOLUME
   const changeVolume = async (e) => {
     const newVolume = e.target.value;
     setVolume(newVolume);
 
-    // Check if playerRef is null or deviceId missing
     if (!playerRef.current) {
       console.warn("⚠️ Player not ready, can't set volume yet.");
       return;
@@ -441,39 +443,28 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  // ───────────────────────────────────────────────────────────────────
-  // 5) Provide Context
-  // ───────────────────────────────────────────────────────────────────
   return (
     <AudioContext.Provider
       value={{
-        // Song
         currentSong,
         isPlaying,
         playPauseSong,
         togglePlayPause,
-
-        // Times & progress
-        progress: localProgress, // purely local or from 'player_state_changed'
+        recentlyPlayed,
+        progress: localProgress,
         currTime: formatTime(localCurrTime / 1000),
         duration,
         changeProgress: handleSeek,
-
-        // Volume
         volume,
         changeVolume,
-
-        //Shuffle
         shuffleSongs,
         isShuffling,
         setCurrentPlaylistId,
         getShuffleStatus,
-
-        // Next/Prev
+        getRecommendedSongs,
         nextSong,
         prevSong,
-
-        // Expose these so you can set them from outside
+        songs,
         setSongs,
         setSongIndex,
       }}

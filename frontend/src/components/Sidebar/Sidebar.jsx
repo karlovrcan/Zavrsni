@@ -3,46 +3,43 @@ import { useSelector } from "react-redux";
 import { FaPlus } from "react-icons/fa";
 import { BiLibrary } from "react-icons/bi";
 import { Link, useNavigate } from "react-router-dom";
-import { SlOptions } from "react-icons/sl";
 
 const Sidebar = () => {
   const { user, token } = useSelector((state) => state.account);
   const [playlists, setPlaylists] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [playlistName, setPlaylistName] = useState("");
-  const [dropdownVisible, setDropdownVisible] = useState(null);
-  const [editingPlaylistId, setEditingPlaylistId] = useState(null);
-  const [newPlaylistName, setNewPlaylistName] = useState("");
   const navigate = useNavigate();
-
-  const startEditingPlaylist = (playlistId, currentName) => {
-    setEditingPlaylistId(playlistId);
-    setNewPlaylistName(currentName);
-  };
 
   useEffect(() => {
     if (user) fetchPlaylists();
     fetchAlbums();
     fetchSpotifyPlaylists();
+    fetchArtists();
   }, [user]);
 
+  // Attach global triggers to re-fetch data
   useEffect(() => {
     window.addAlbumToSidebar = fetchAlbums;
     window.addSpotifyToSidebar = fetchSpotifyPlaylists;
     window.addPlaylistToSidebar = fetchPlaylists;
+    window.addFollowedArtistToSidebar = fetchArtists;
     return () => {
       window.addAlbumToSidebar = null;
       window.addSpotifyToSidebar = null;
       window.addPlaylistToSidebar = null;
+      window.addFollowedArtistToSidebar = null;
     };
   }, []);
 
+  // --- CREATE PLAYLIST ---
+
   const handleCreatePlaylist = async () => {
     if (!playlistName.trim()) return;
-
     try {
       const response = await fetch("http://localhost:5001/api/playlists", {
         method: "POST",
@@ -52,15 +49,13 @@ const Sidebar = () => {
         },
         body: JSON.stringify({ name: playlistName }),
       });
-
       const data = await response.json();
       if (data.success) {
-        // 👇 Patch the user info so Sidebar shows "Playlist • yourName"
+        // Patch user info so Sidebar shows "Playlist • yourName"
         const patchedPlaylist = {
           ...data.playlist,
           userId: { _id: user._id, username: user.username },
         };
-
         setPlaylists([...playlists, patchedPlaylist]);
         setPlaylistName("");
         setShowInput(false);
@@ -71,105 +66,24 @@ const Sidebar = () => {
     }
   };
 
-  const handleRenamePlaylist = async (playlistId) => {
-    if (!newPlaylistName.trim()) return;
+  // --- FETCHING ---
 
+  const fetchArtists = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/playlists/${playlistId}`,
+        "http://localhost:5001/api/followed-artists",
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name: newPlaylistName }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setPlaylists(
-          playlists.map((playlist) =>
-            playlist._id === playlistId
-              ? { ...playlist, name: newPlaylistName }
-              : playlist
-          )
-        );
-        setEditingPlaylistId(null);
-      }
-    } catch (error) {
-      console.error("Error renaming playlist:", error);
-    }
-  };
-
-  const handleDeletePlaylist = async (playlistId) => {
-    if (!window.confirm("Are you sure you want to delete this playlist?"))
-      return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:5001/api/playlists/${playlistId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setPlaylists(
-          playlists.filter((playlist) => playlist._id !== playlistId)
-        );
-      }
-    } catch (error) {
-      console.error("Error deleting playlist:", error);
-    }
-  };
-
-  const handleDeleteAlbum = async (albumId) => {
-    if (!window.confirm("Are you sure you want to remove this album?")) return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:5001/api/albums/${albumId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       const data = await response.json();
       if (data.success) {
-        setAlbums(albums.filter((album) => album._id !== albumId));
+        setArtists(data.artists);
       }
     } catch (error) {
-      console.error("Error deleting album:", error);
+      console.error("Error fetching followed artists:", error);
     }
   };
-
-  const toggleDropdown = (playlistId) => {
-    setDropdownVisible(dropdownVisible === playlistId ? null : playlistId);
-  };
-
-  const closeDropdown = () => {
-    setDropdownVisible(null);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".dropdown-menu")) {
-        closeDropdown();
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, []);
 
   const fetchPlaylists = async () => {
     try {
@@ -216,32 +130,6 @@ const Sidebar = () => {
     }
   };
 
-  const handleDeleteSpotifyPlaylist = async (playlistId) => {
-    if (!window.confirm("Remove this Spotify playlist from your sidebar?"))
-      return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:5001/api/spotify-playlist/${playlistId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setSpotifyPlaylists(
-          spotifyPlaylists.filter((pl) => pl._id !== playlistId)
-        );
-      }
-    } catch (error) {
-      console.error("Error deleting Spotify playlist:", error);
-    }
-  };
-
   return (
     <div className="h-[calc(100vh-155px)] w-full flex flex-col ml-[5px]">
       <div className="flex-grow h-full overflow-hidden">
@@ -253,15 +141,14 @@ const Sidebar = () => {
             </div>
             {user && (
               <button
-                className="bg-[#121212] text-white text-base px-3 py-2 rounded-full font-semibold hover:bg-[#242424] transition-colors duration-200 flex items-center space-x-2"
+                className="bg-[#121212] text-white text-base px-2 py-2 rounded-full font-semibold hover:bg-[#242424] transition-colors duration-200 flex items-center space-x-2"
                 onClick={() => setShowCreateDropdown(!showCreateDropdown)}
               >
                 {showCreateDropdown ? (
-                  "✖"
+                  <FaPlus className="rotate-[45deg] transform transition-transform duration-300 ease-in-out" />
                 ) : (
-                  <div className="flex items-center">
+                  <div className="transform transition-transform duration-300 ease-in-out">
                     <FaPlus />
-                    <span className="ml-1">Create</span>
                   </div>
                 )}
               </button>
@@ -282,24 +169,41 @@ const Sidebar = () => {
           )}
 
           {showInput && (
-            <div className="px-4">
-              <input
-                type="text"
-                value={playlistName}
-                onChange={(e) => setPlaylistName(e.target.value)}
-                placeholder="Playlist Name"
-                className="w-full p-2 text-white tertiary_bg rounded-sm "
-              />
-              <button
-                onClick={handleCreatePlaylist}
-                className="w-full mt-2 bg-green-500 text-white py-1 rounded-sm hover:bg-green-600"
-              >
-                Create
-              </button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+              <div className="w-[320px] bg-[#242424] rounded-lg shadow-lg p-5">
+                <h2 className="text-white text-base font-semibold mb-4">
+                  Create Playlist
+                </h2>
+                <input
+                  type="text"
+                  value={playlistName}
+                  onChange={(e) => setPlaylistName(e.target.value)}
+                  placeholder="Playlist Name"
+                  className="w-full p-2 mb-4 text-white bg-[#121212] border border-gray-700 rounded-sm focus:outline-none"
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="text-sm text-gray-400 hover:text-white transition"
+                    onClick={() => {
+                      setShowInput(false);
+                      setPlaylistName("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    className="text-sm text-black bg-green-500 hover:bg-green-600 transition px-4 py-1 rounded-sm font-semibold"
+                    onClick={handleCreatePlaylist}
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
-          <div className="your_library flex flex-col gap-1 overflow-y-auto pr-2 h-full">
+          <div className="your_library flex flex-col overflow-y-auto pr-2 h-full">
             {user?.role === "guest" ? (
               <div className="tertiary_bg rounded-lg px-4 py-6">
                 <p className="font-bold">Create your first playlist.</p>
@@ -310,6 +214,7 @@ const Sidebar = () => {
               </div>
             ) : (
               <>
+                {/* Spotify playlists */}
                 {spotifyPlaylists.length > 0 && (
                   <>
                     <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
@@ -336,20 +241,12 @@ const Sidebar = () => {
                             Playlist • {pl.owner?.name || "Unknown"}
                           </div>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSpotifyPlaylist(pl._id);
-                          }}
-                          className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
-                        >
-                          ✖
-                        </button>
                       </div>
                     ))}
                   </>
                 )}
 
+                {/* Local playlists */}
                 {playlists.map((playlist) => {
                   const playlistImage = playlist?.songs?.length
                     ? playlist.songs[0].albumCover
@@ -376,51 +273,11 @@ const Sidebar = () => {
                           </div>
                         </div>
                       </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleDropdown(playlist._id);
-                        }}
-                        className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
-                      >
-                        <SlOptions />
-                      </button>
-
-                      {dropdownVisible === playlist._id && (
-                        <div className="dropdown-menu absolute top-[4.5rem] right-0 bg-[#242424] shadow-lg rounded-sm p-1 w-32 text-gray-200 z-50">
-                          <ul>
-                            <li
-                              className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer transition duration-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startEditingPlaylist(
-                                  playlist._id,
-                                  playlist.name
-                                );
-                                closeDropdown();
-                              }}
-                            >
-                              Rename
-                            </li>
-                            <li
-                              className="p-2 hover:bg-[#3E3D3D] rounded-sm cursor-pointer text-red-400 transition duration-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeletePlaylist(playlist._id);
-                                closeDropdown();
-                              }}
-                            >
-                              Delete
-                            </li>
-                          </ul>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
 
-                {/* Albums section */}
+                {/* Albums */}
                 {albums.length > 0 && (
                   <>
                     <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
@@ -448,15 +305,36 @@ const Sidebar = () => {
                             </div>
                           </div>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAlbum(album._id);
-                          }}
-                          className="text-white text-xl p-2 transition duration-200 transform hover:scale-110"
-                        >
-                          ✖
-                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Artists */}
+                {artists.length > 0 && (
+                  <>
+                    <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                      Artists
+                    </div>
+                    {artists.map((artist) => (
+                      <div
+                        key={artist.id}
+                        className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer"
+                        onClick={() => navigate(`/artist/${artist.id}`)}
+                      >
+                        <img
+                          src={artist.image || "/default_artist.png"}
+                          alt="Artist"
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div className="flex-grow overflow-hidden">
+                          <div className="text-white text-sm font-medium truncate">
+                            {artist.name}
+                          </div>
+                          <div className="text-xs text-gray-400 truncate">
+                            Artist
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </>

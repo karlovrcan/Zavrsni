@@ -22,9 +22,10 @@ import ArtistProfile from "./components/Profile/ArtistProfile";
 import Album from "./components/Album/Album";
 import Profile from "./components/Profile/Profile";
 import Admin from "./components/Admin/Admin";
-import { setSpotifyDeviceId } from "./states/Actions/SpotifyActions";
 import { fetchSongs } from "./api/spotifyService";
-
+import SongRadio from "./components/SongRadio.jsx/SongRadio";
+import RecentlyPlayed from "./components/RecentlyPlayed/RecentlyPlayed";
+import CategoryPlaylist from "./components/CategoryPlaylist/CategoryPlaylist";
 const AppContent = () => {
   const dispatch = useDispatch();
   const accessToken = useSelector((state) => state.spotify.accessToken);
@@ -33,8 +34,6 @@ const AppContent = () => {
   const [artists, setArtists] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [playlists, setPlaylists] = useState([]);
-  const [deviceId, setDeviceId] = useState(null);
-
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
@@ -110,6 +109,9 @@ const AppContent = () => {
         <Route path="/artist/:id" element={<ArtistProfile />} />
         <Route path="/album/:id" element={<Album />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/radio/:seedId" element={<SongRadio />} />
+        <Route path="/recently-played" element={<RecentlyPlayed />} />
+        <Route path="/category/:categoryId" element={<CategoryPlaylist />} />
       </Routes>
 
       {!hideNavAndSongBar && <Songbar />}

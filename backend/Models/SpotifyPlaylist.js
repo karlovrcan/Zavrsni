@@ -13,12 +13,15 @@ const spotifyPlaylistSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  featured: { type: Boolean, default: false },
+
   tracks: [
     {
       _id: { type: String, required: true }, // Spotify track ID
       name: { type: String, required: true },
       uri: { type: String, required: true },
-      album: { type: String, required: true }, // ✅ Album name
+      album: { type: String, required: true },
+      albumId: { type: String, required: true },
       albumCover: { type: String, required: true },
       duration_ms: { type: Number, required: true },
       artists: [{ name: String }],

@@ -10,16 +10,20 @@ import { BsCheckCircleFill } from "react-icons/bs";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
 
+/**
+ * Displays a Spotify playlist retrieved from the official API,
+ * plus local user “save to sidebar” functionality.
+ */
 const SpotifyPlaylist = () => {
-  const [isSaved, setIsSaved] = useState(false);
-  const [userPlaylists, setUserPlaylists] = useState([]);
-  const [showContent, setShowContent] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { id } = useParams(); // The Spotify playlist ID from the URL
   const { token } = useSelector((state) => state.account);
-  const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
+
   const [playlist, setPlaylist] = useState(null);
   const [bgColor, setBgColor] = useState("#000000");
+  const [isSaved, setIsSaved] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     currentSong,
@@ -31,6 +35,97 @@ const SpotifyPlaylist = () => {
     setCurrentPlaylistId,
     getShuffleStatus,
   } = useAudio();
+
+  useEffect(() => {
+    const fetchPlaylist = async () => {
+      if (!accessToken) return;
+      try {
+        const res = await fetch(`https://api.spotify.com/v1/playlists/${id}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const data = await res.json();
+        setPlaylist(data);
+
+        // Format the tracks so each track uses .uri
+        const formattedTracks =
+          data?.tracks?.items
+            ?.map(({ track }) => {
+              if (!track) return null;
+              console.log("Track data1 =>", track);
+              return {
+                uri: track.uri,
+                name: track.name,
+                artists: track.artists,
+                album: track.album?.name || "Unknown Album",
+                albumCover: track.album?.images?.[0]?.url || "",
+                duration_ms: track.duration_ms,
+              };
+            })
+            .filter(Boolean) || [];
+
+        setGlobalSongs(formattedTracks);
+
+        // Extract color from the cover
+        const coverImage =
+          data.images?.[0]?.url || formattedTracks[0]?.albumCover || null;
+        if (coverImage) {
+          Vibrant.from(coverImage)
+            .getPalette()
+            .then((palette) => {
+              if (palette.Vibrant) {
+                setBgColor(palette.Vibrant.hex);
+              }
+            })
+            .catch((err) => console.error("Error extracting palette:", err));
+        }
+      } catch (err) {
+        console.error("Error fetching Spotify playlist:", err);
+      }
+    };
+
+    if (accessToken) {
+      fetchPlaylist();
+    }
+  }, [id, accessToken, setGlobalSongs]);
+
+  useEffect(() => {
+    const checkIfSaved = async () => {
+      if (!playlist?.id || !token) return;
+      try {
+        const res = await fetch("http://localhost:5001/api/spotify-playlist", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Check if this playlist is already saved in the local DB
+          const alreadySaved = data.playlists.some(
+            (pl) => pl.spotifyId === playlist.id
+          );
+          setIsSaved(alreadySaved);
+        }
+      } catch (err) {
+        console.error("Error checking if playlist is saved:", err);
+      }
+    };
+    if (playlist && token) {
+      checkIfSaved();
+    }
+  }, [playlist, token]);
+
+  // Fade in effect
+  useEffect(() => {
+    if (playlist) {
+      setShowContent(false);
+      setIsLoading(true);
+
+      const delay = setTimeout(() => {
+        setIsLoading(false);
+        setShowContent(true);
+      }, 500);
+
+      return () => clearTimeout(delay);
+    }
+  }, [playlist]);
 
   const saveSpotifyPlaylistToSidebar = async () => {
     if (!playlist || !token) return;
@@ -52,15 +147,16 @@ const SpotifyPlaylist = () => {
           },
           tracks:
             playlist.tracks.items?.map(({ track }) => ({
-              _id: track.id || track.uri || "unknown",
-              name: track.name,
               uri: track.uri || "unknown",
+              name: track.name,
               album: track.album?.name || "Unknown Album",
-              albumCover:
-                track.album?.images?.[0]?.url ||
-                "https://via.placeholder.com/150",
+              albumCover: track.album?.images?.[0]?.url || "",
               duration_ms: track.duration_ms || 0,
-              artists: track.artists?.map((a) => ({ name: a.name })) || [],
+              artists:
+                track.artists?.map((a) => ({
+                  name: a.name,
+                  id: a.id,
+                })) || [],
             })) || [],
         }),
       });
@@ -81,7 +177,7 @@ const SpotifyPlaylist = () => {
     if (!playlist || !token) return;
 
     try {
-      // First fetch all saved playlists to find the DB _id
+      // Fetch all saved Spotify playlists to find the DB _id
       const res = await fetch("http://localhost:5001/api/spotify-playlist", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -91,7 +187,6 @@ const SpotifyPlaylist = () => {
         const target = data.playlists.find(
           (pl) => pl.spotifyId === playlist.id
         );
-
         if (!target) return;
 
         const deleteRes = await fetch(
@@ -111,107 +206,21 @@ const SpotifyPlaylist = () => {
         }
       }
     } catch (err) {
-      console.error("Error deleting Spotify playlist from sidebar:", err);
+      console.error("Error deleting Spotify playlist:", err);
     }
   };
-
-  useEffect(() => {
-    const fetchPlaylist = async () => {
-      const res = await fetch(`https://api.spotify.com/v1/playlists/${id}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      const data = await res.json();
-      setPlaylist(data);
-
-      const formattedTracks =
-        playlist?.tracks?.items
-          ?.map(({ track }) => {
-            if (!track) return null;
-            return {
-              id: track.id,
-              uri: track.uri,
-              name: track.name,
-              artists: track.artists,
-              album: track.album?.name || "Unknown Album",
-              albumCover: track.album?.images?.[0]?.url || "",
-              duration_ms: track.duration_ms,
-            };
-          })
-          .filter(Boolean) || [];
-
-      setGlobalSongs(formattedTracks);
-
-      const coverImage =
-        data.images?.[0]?.url || formattedTracks[0]?.albumCover || null;
-
-      if (coverImage) {
-        Vibrant.from(coverImage)
-          .getPalette()
-          .then((palette) => {
-            if (palette.Vibrant) {
-              setBgColor(palette.Vibrant.hex);
-            }
-          })
-          .catch((err) => console.error("Error extracting palette:", err));
-      }
-    };
-
-    if (accessToken) {
-      fetchPlaylist();
-    }
-  }, [id, accessToken, setGlobalSongs]);
-
-  useEffect(() => {
-    const checkIfSaved = async () => {
-      try {
-        const res = await fetch("http://localhost:5001/api/spotify-playlist", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) {
-          const alreadySaved = data.playlists.some(
-            (pl) => pl.spotifyId === playlist.id
-          );
-          setIsSaved(alreadySaved);
-        }
-      } catch (err) {
-        console.error("Error checking if playlist is saved:", err);
-      }
-    };
-
-    if (playlist && token) {
-      checkIfSaved();
-    }
-  }, [playlist, token]);
-
-  useEffect(() => {
-    if (playlist) {
-      setShowContent(false);
-      setIsLoading(true);
-
-      const delay = setTimeout(() => {
-        setIsLoading(false);
-        setShowContent(true);
-      }, 500);
-
-      return () => clearTimeout(delay);
-    }
-  }, [playlist]);
 
   const formattedTracks =
     playlist?.tracks?.items
       ?.map(({ track }) => {
         if (!track) return null;
+        console.log("Track data2 =>", track);
         return {
-          id: track.id,
           uri: track.uri,
           name: track.name,
           artists: track.artists,
-          album: track.album?.name || "Unknown Album", // ✅ this is the key
-          albumCover:
-            track.album?.images?.[0]?.url || "https://via.placeholder.com/150",
+          album: track.album?.name || "Unknown Album",
+          albumCover: track.album?.images?.[0]?.url || "",
           duration_ms: track.duration_ms,
         };
       })
@@ -222,12 +231,6 @@ const SpotifyPlaylist = () => {
 
   const handlePlayPauseClick = () => {
     if (!formattedTracks.length || !playlist?.id) return;
-
-    // Ensure context is ready
-    if (typeof getShuffleStatus !== "function") {
-      console.error("getShuffleStatus is not a function!");
-      return;
-    }
 
     setCurrentPlaylistId(playlist.id);
 
@@ -282,24 +285,37 @@ const SpotifyPlaylist = () => {
                   className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
                 />
               </div>
-              <div className="w-3/4 place-content-end pl-2 font-extrabold text-7xl text-white">
-                {playlist?.name}
+              <div className="w-3/4 flex flex-col justify-end pl-6 overflow-hidden">
+                <h1
+                  className="text-white font-extrabold w-full break-words text-[clamp(2rem,5vw,1.5rem)] leading-tight"
+                  title={playlist?.name}
+                >
+                  {playlist?.name}
+                </h1>
+                <p className="text-gray-300 text-sm mt-2 font-sm">
+                  Playlist by{" "}
+                  <span className="text-white font-bold">
+                    {playlist?.owner?.display_name || "Unknown"}
+                  </span>
+                </p>
               </div>
             </div>
 
             <div className="w-full bg-black/50 pb-[100px]">
               <div className="flex items-center p-4 gap-4 mb-6 mt-6">
+                {/* Play / Pause */}
                 <button
                   className="bg-[#1db954] text-black font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
                   onClick={handlePlayPauseClick}
                 >
                   {currentSong?.uri === formattedTracks[0]?.uri && isPlaying ? (
-                    <IoIosPause className="text-5xl text-black " />
+                    <IoIosPause className="text-4xl text-black " />
                   ) : (
-                    <IoIosPlay className="text-5xl text-black pl-1" />
+                    <IoIosPlay className="text-4xl text-black pl-1" />
                   )}
                 </button>
 
+                {/* Save/Remove from sidebar */}
                 <button
                   onClick={() => {
                     if (isSaved) {
@@ -316,22 +332,26 @@ const SpotifyPlaylist = () => {
                 </button>
               </div>
 
+              {/* Table header */}
               <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-                <p className="font-semibold w-1/3 text-center pr-[100px]">
+                <p className="font-semibold w-1/3 text-center pr-[70px]">
                   Title / Author
                 </p>
-                <p className="font-semibold w-1/3 text-center pr-2">Album</p>
+                <p className="font-semibold w-1/3 text-center ml-[60px]">
+                  Album
+                </p>
                 <div className="w-1/3 flex justify-end pr-6">
                   <IoTimeOutline className="text-xl " />
                 </div>
               </div>
 
-              <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
+              <div className="w-full h-[2px] bg-white/10"></div>
 
+              {/* Tracks list */}
               <div className="flex flex-col px-5 pt-2">
                 {formattedTracks.map((track, index) => (
                   <MiniCard
-                    key={`${track.id}-${index}`}
+                    key={track.uri || index}
                     song={track}
                     onClick={() => {
                       setSongIndex(index);

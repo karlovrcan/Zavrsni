@@ -225,8 +225,6 @@ const Search = ({
           )}
         </div>
       </div>
-
-      <SongBar />
     </Layout>
   );
 };

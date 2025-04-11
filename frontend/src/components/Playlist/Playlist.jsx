@@ -10,13 +10,19 @@ import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
 import fallbackImage from "../../assets/playlistCover.png";
 
+/**
+ * A local “custom” playlist from your own database,
+ * identified by :id in the URL.
+ */
 const Playlist = () => {
   const { token } = useSelector((state) => state.account);
   const { id } = useParams();
+
   const [playlist, setPlaylist] = useState(null);
   const [songs, setSongs] = useState([]);
   const [bgColor, setBgColor] = useState("#000000");
   const [isSaved, setIsSaved] = useState(true);
+
   const { playPauseSong, setSongs: setGlobalSongs, setSongIndex } = useAudio();
   const scrollRef = useRef(null);
 
@@ -40,6 +46,8 @@ const Playlist = () => {
 
       setPlaylist(data.playlist);
       setSongs(data.playlist.songs);
+
+      // Put the playlist’s songs in the global queue
       setGlobalSongs(data.playlist.songs);
       setSongIndex(0);
     } catch (error) {
@@ -49,8 +57,10 @@ const Playlist = () => {
 
   useEffect(() => {
     fetchPlaylist();
-  }, [id, setGlobalSongs, setSongIndex]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
+  // Vibrant-based color extraction if the first track has an albumCover
   useEffect(() => {
     if (playlist?.songs?.length > 0) {
       const firstImg = playlist.songs[0].albumCover;
@@ -66,7 +76,6 @@ const Playlist = () => {
               palette?.DarkVibrant?.hex ||
               palette?.Muted?.hex ||
               "#282828"; // fallback
-
             setBgColor(chosenColor);
           })
           .catch((err) => console.error("Error extracting palette:", err));
@@ -74,6 +83,7 @@ const Playlist = () => {
     }
   }, [playlist]);
 
+  // Refresh if a track is added/removed
   useEffect(() => {
     window.refreshActivePlaylist = fetchPlaylist;
     return () => {
@@ -81,9 +91,9 @@ const Playlist = () => {
     };
   }, [id]);
 
+  // If user deletes the entire playlist
   const deleteCustomPlaylist = async () => {
     if (!playlist?._id) return;
-
     try {
       const res = await fetch(
         `http://localhost:5001/api/playlists/${playlist._id}`,
@@ -94,22 +104,27 @@ const Playlist = () => {
           },
         }
       );
-
       const data = await res.json();
       if (data.success) {
         setIsSaved(false);
-        window.addPlaylistToSidebar?.();
+        window.addPlaylistToSidebar?.(); // Refresh sidebar
       }
     } catch (err) {
       console.error("Failed to delete custom playlist:", err);
     }
   };
 
-  if (!playlist) return <p className="text-white">Loading...</p>;
+  if (!playlist) {
+    return (
+      <Layout>
+        <p className="text-white">Loading...</p>
+      </Layout>
+    );
+  }
 
   const playlistImage = playlist.songs.length
     ? playlist.songs[0].albumCover
-    : "../../src/assets/playlistCover.png";
+    : fallbackImage;
 
   return (
     <Layout>
@@ -135,16 +150,21 @@ const Playlist = () => {
 
         <div className="w-full bg-black/50 pb-[110px]">
           <div className="flex items-center pt-6 pl-6 gap-4 mb-6 mt-6">
+            {/* Play the entire playlist from the first track */}
             <button
               className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
               onClick={() => {
                 setGlobalSongs(songs);
                 setSongIndex(0);
-                playPauseSong(songs[0]);
+                if (songs[0]) {
+                  playPauseSong(songs[0]);
+                }
               }}
             >
               <IoIosPlay className="text-5xl text-black pl-1" />
             </button>
+
+            {/* Option to delete the entire playlist */}
             <button
               onClick={isSaved ? deleteCustomPlaylist : undefined}
               className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
@@ -155,23 +175,24 @@ const Playlist = () => {
             </button>
           </div>
 
+          {/* Table header */}
           <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
             <p className="font-semibold w-1/3 text-center pr-[100px]">
               Title / Author
             </p>
             <p className="font-semibold w-1/3 text-center pr-2">Album</p>
             <div className="w-1/3 flex justify-end pr-6">
-              <IoTimeOutline className="text-xl " />
+              <IoTimeOutline className="text-xl" />
             </div>
           </div>
+          <div className="w-full h-[2px] bg-white/10"></div>
 
-          <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
-
+          {/* Playlist songs */}
           <div className="flex flex-col px-4 pt-2">
             {songs.length > 0 ? (
               songs.map((song, index) => (
                 <MiniCard
-                  key={song._id || index}
+                  key={song.uri || index}
                   song={song}
                   onClick={() => {
                     setSongIndex(index);

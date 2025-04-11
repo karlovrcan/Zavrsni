@@ -28,8 +28,8 @@ router.post("/", verifyToken, async (req, res) => {
         name: track.name || "Untitled",
         uri: track.uri || "unknown",
         album: track.album || "Unknown Album",
-        albumCover:
-          track.albumCover || "https://via.placeholder.com/150", // ✅ fallback
+        albumId: track.albumId || "",
+        albumCover: track.albumCover || "https://via.placeholder.com/150",
         duration_ms: track.duration_ms || 0,
         artists: (track.artists || []).map((a) => ({ name: a.name })),
       })),
@@ -44,7 +44,6 @@ router.post("/", verifyToken, async (req, res) => {
       .json({ success: false, message: "Failed to save playlist" });
   }
 });
-
 
 // GET /api/spotify
 router.get("/", verifyToken, async (req, res) => {
@@ -71,9 +70,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
     res.json({ success: true, message: "Playlist deleted" });
   } catch (error) {
     console.error("❌ Failed to delete Spotify playlist:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error });
+    res.status(500).json({ success: false, message: "Server error", error });
   }
 });
 
