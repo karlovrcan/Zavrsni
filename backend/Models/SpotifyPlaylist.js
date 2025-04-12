@@ -25,6 +25,7 @@ const spotifyPlaylistSchema = new mongoose.Schema({
       albumCover: { type: String, required: true },
       duration_ms: { type: Number, required: true },
       artists: [{ name: String }],
+      genre: { type: String, default: "" },
     },
   ],
   createdAt: {

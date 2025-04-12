@@ -112,6 +112,19 @@ const Navbar = ({ onSearch }) => {
                         </Link>
                       )}
                     </li>
+
+                    {/* Render Admin link only if user is admin */}
+                    {user?.role === "admin" && (
+                      <li>
+                        <Link
+                          to="/admin"
+                          className="flex p-2 justify-between rounded-sm hover:bg-[#121212]"
+                        >
+                          <span>Admin</span>
+                        </Link>
+                      </li>
+                    )}
+
                     <li>
                       <button
                         onClick={logoutUser}

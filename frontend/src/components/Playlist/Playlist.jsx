@@ -19,11 +19,17 @@ const Playlist = () => {
   const { id } = useParams();
 
   const [playlist, setPlaylist] = useState(null);
-  const [songs, setSongs] = useState([]);
+  const [songs, setSongs] = useState([]); // LOCAL state for display
   const [bgColor, setBgColor] = useState("#000000");
   const [isSaved, setIsSaved] = useState(true);
 
-  const { playPauseSong, setSongs: setGlobalSongs, setSongIndex } = useAudio();
+  // We no longer destructure setSongs: setGlobalSongs. Instead, we use loadQueue.
+  const {
+    playPauseSong,
+    loadQueue, // from new AudioProvider
+    setSongIndex, // so we can choose which track is active in the global queue
+  } = useAudio();
+
   const scrollRef = useRef(null);
 
   const scrollToTop = () => {
@@ -46,10 +52,8 @@ const Playlist = () => {
 
       setPlaylist(data.playlist);
       setSongs(data.playlist.songs);
-
-      // Put the playlist’s songs in the global queue
-      setGlobalSongs(data.playlist.songs);
-      setSongIndex(0);
+      // NOTE: We do NOT automatically loadQueue(...) here, so that simply
+      // viewing the playlist won't overwrite the user's existing queue.
     } catch (error) {
       console.error("Error fetching playlist:", error);
     }
@@ -83,7 +87,7 @@ const Playlist = () => {
     }
   }, [playlist]);
 
-  // Refresh if a track is added/removed
+  // Refresh if a track is added/removed from this playlist
   useEffect(() => {
     window.refreshActivePlaylist = fetchPlaylist;
     return () => {
@@ -107,7 +111,7 @@ const Playlist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(false);
-        window.addPlaylistToSidebar?.(); // Refresh sidebar
+        window.addPlaylistToSidebar?.(); // Refresh sidebar if you have that logic
       }
     } catch (err) {
       console.error("Failed to delete custom playlist:", err);
@@ -154,8 +158,11 @@ const Playlist = () => {
             <button
               className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
               onClick={() => {
-                setGlobalSongs(songs);
+                // 1) Load the queue with these songs from the local playlist
+                loadQueue(songs, playlist._id);
+                // 2) Start from the first track
                 setSongIndex(0);
+                // 3) Actually play it
                 if (songs[0]) {
                   playPauseSong(songs[0]);
                 }
@@ -195,6 +202,7 @@ const Playlist = () => {
                   key={song.uri || index}
                   song={song}
                   onClick={() => {
+                    loadQueue(songs, playlist._id);
                     setSongIndex(index);
                     playPauseSong(song);
                   }}

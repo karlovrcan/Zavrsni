@@ -5,6 +5,7 @@ import { IoIosSkipBackward, IoIosSkipForward } from "react-icons/io";
 import { IoPauseCircleSharp, IoPlayCircleSharp } from "react-icons/io5";
 import { CiCirclePlus } from "react-icons/ci";
 import { BsCheckCircleFill } from "react-icons/bs";
+import { FaPlus } from "react-icons/fa";
 import {
   LuShuffle,
   LuRepeat2,
@@ -21,7 +22,9 @@ import MiniCard from "../MiniCard/MiniCard";
 
 const SongBar = () => {
   const {
-    songs,
+    activeQueue,
+    setSongIndex,
+    playPauseSong,
     currentSong,
     isPlaying,
     togglePlayPause,
@@ -36,26 +39,27 @@ const SongBar = () => {
     isShuffling,
   } = useAudio();
 
-  // Instead of checking _id/id, unify on uri
   const currentSongUri = currentSong?.uri || "";
-
   const disabled = !currentSong;
+
   const { user, token } = useSelector((state) => state.account);
   const accessToken = useSelector((state) => state.spotify.accessToken);
 
-  // State for “Add to Playlist” dropdown
+  // “Add to Playlist” dropdown
   const [playlists, setPlaylists] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  // This tracks which playlists currently contain this song
   const [addedToPlaylists, setAddedToPlaylists] = useState([]);
 
-  // State for queue
+  // Queue dropdown
   const [queueDropdownOpen, setQueueDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (user) fetchPlaylists();
+    if (user) {
+      fetchPlaylists();
+    }
   }, [user, currentSongUri]);
 
+  // Optionally fetch missing artist IDs for the currentSong
   useEffect(() => {
     if (!accessToken || !currentSong?.artists?.length) return;
     const needsFetching = currentSong.artists.some((a) => !a.id);
@@ -80,7 +84,6 @@ const SongBar = () => {
     fetchArtistIds();
   }, [accessToken, currentSong]);
 
-  // Fetch playlists from your API and see if the currentSong’s uri is in them
   const fetchPlaylists = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/playlists", {
@@ -89,10 +92,10 @@ const SongBar = () => {
       const data = await res.json();
       if (data.success) {
         setPlaylists(data.playlists);
-        // Mark which playlists contain this track
+        // Mark which playlists contain the current track
         const inThese = data.playlists
           .filter((p) => p.songs.some((s) => s.uri === currentSongUri))
-          .map((p) => p._id); // your playlist _id
+          .map((p) => p._id);
         setAddedToPlaylists(inThese);
       }
     } catch (err) {
@@ -107,9 +110,7 @@ const SongBar = () => {
     const endpoint = isAdded ? "remove-song" : "add-song";
 
     const body = {
-      // If your server expects “songId” as the unique key, pass the uri
       songId: currentSongUri,
-      // Additional data
       name: currentSong.name,
       uri: currentSong.uri,
       artists: currentSong.artists || [],
@@ -155,7 +156,7 @@ const SongBar = () => {
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  // Click on the progress bar
+  // Seek (by clicking progress bar)
   const handleSeekClick = (e) => {
     if (disabled) return;
     const slider = e.currentTarget;
@@ -165,31 +166,32 @@ const SongBar = () => {
     changeProgress(newProgress);
   };
 
-  // Identify the immediate next track and rest of the queue
+  // Identify next track and rest of queue using activeQueue, not songs
   let nextSongToPlay = null;
   let restOfQueue = [];
-  if (songs && currentSong) {
-    const currentIndex = songs.findIndex((s) => s.uri === currentSong.uri);
+
+  if (activeQueue.length > 0 && currentSong) {
+    const currentIndex = activeQueue.findIndex(
+      (s) => s.uri === currentSong.uri
+    );
     if (currentIndex !== -1) {
       // immediate next
-      if (currentIndex < songs.length - 1) {
-        nextSongToPlay = songs[currentIndex + 1];
+      if (currentIndex < activeQueue.length - 1) {
+        nextSongToPlay = activeQueue[currentIndex + 1];
       }
       // everything after that
-      if (currentIndex + 2 < songs.length) {
-        restOfQueue = songs.slice(currentIndex + 2);
+      if (currentIndex + 2 <= activeQueue.length - 1) {
+        restOfQueue = activeQueue.slice(currentIndex + 2);
       }
     } else {
       // fallback
-      restOfQueue = songs.filter((s) => s.uri !== currentSong.uri);
+      restOfQueue = activeQueue.filter((s) => s.uri !== currentSong.uri);
     }
   }
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-black z-50">
-      {/* Player main bar */}
       <div className="h-[90px] flex justify-between items-center px-4">
-        {/* LEFT: Song info */}
         <div className="flex items-center gap-4 w-[30%] min-w-[200px] max-w-[30%] overflow-hidden">
           <img
             src={currentSong?.albumCover || "../src/assets/playlistCover.png"}
@@ -221,7 +223,6 @@ const SongBar = () => {
               </p>
             </div>
 
-            {/* Add to Playlist button */}
             <div className="relative">
               <button
                 className={`text-white px-3 py-1 rounded-md ${
@@ -240,7 +241,6 @@ const SongBar = () => {
           </div>
         </div>
 
-        {/* CENTER: Playback controls */}
         <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center w-[40%] min-w-[300px]">
           <div className="flex justify-center gap-5 items-center mt-3">
             <LuShuffle
@@ -279,7 +279,6 @@ const SongBar = () => {
             <LuRepeat2 className={`text-lg ${disabled ? "opacity-30" : ""}`} />
           </div>
 
-          {/* Progress bar */}
           <div className="flex items-center justify-between gap-2 w-full px-4 mt-2 mb-1 h-[32px] relative z-10">
             <span className="text-xs text-gray-400 w-[42px] text-right flex-shrink-0">
               {disabled ? "0:00" : currTime}
@@ -310,11 +309,7 @@ const SongBar = () => {
           </div>
         </div>
 
-        {/* RIGHT: Volume, queue, etc. */}
         <div className="flex items-center justify-end w-[30%] min-w-[250px] gap-4 text-white">
-          <AiOutlinePlaySquare
-            className={`text-xl ${disabled ? "opacity-30" : ""}`}
-          />
           <HiOutlineQueueList
             onClick={() => setQueueDropdownOpen((prev) => !prev)}
             className={`text-xl cursor-pointer transition hover:scale-110 ${
@@ -336,7 +331,7 @@ const SongBar = () => {
             <div
               className="active_progress"
               style={{ width: `${volume || 0}%` }}
-            ></div>
+            />
             <input
               type="range"
               min={0}
@@ -349,19 +344,15 @@ const SongBar = () => {
               }`}
             />
           </div>
-          <TbArrowsDiagonal
-            className={`text-xl ${disabled ? "opacity-30" : ""}`}
-          />
         </div>
       </div>
 
-      {/* Add to playlist dropdown */}
       {!disabled && dropdownOpen && (
         <div className="absolute bottom-[100px] left-[150px] w-64 bg-[#242424] rounded-lg drop-shadow-[0_-2px_7px_rgba(0,0,0,0.9)] p-2 z-[999]">
           <p className="text-gray-400 text-sm px-2 mb-2 mt-2">
             Add to playlist
           </p>
-          <div className="w-full h-[2px] bg-white/10"></div>
+          <div className="w-full h-[2px] bg-white/10" />
           <div className="max-h-64 overflow-y-auto custom-scrollbar mt-1">
             {playlists.length > 0 ? (
               playlists.map((pl) => {
@@ -413,7 +404,6 @@ const SongBar = () => {
         </div>
       )}
 
-      {/* Queue dropdown: Now playing, Next Song, etc. */}
       {queueDropdownOpen && !disabled && (
         <div
           className="fixed top-[64px] bottom-[91px] right-0 w-1/3 bg-[#121212]
@@ -422,9 +412,20 @@ const SongBar = () => {
                      flex flex-col"
         >
           <div className="pt-1">
-            <h2 className="text-white text-lg font-bold mb-4 px-3 pt-1">
-              Queue
-            </h2>
+            {/* Container for “Queue” label + FaPlus icon */}
+            <div className="flex items-center justify-between px-3 mb-4">
+              <h2 className="text-white text-lg font-bold pt-1">Queue</h2>
+              <FaPlus
+                onClick={() => setQueueDropdownOpen((prev) => !prev)}
+                className={`rotate-[45deg] text-xl hover:scale-110 cursor-pointer ${
+                  disabled
+                    ? "opacity-30"
+                    : queueDropdownOpen
+                    ? "text-gray-500"
+                    : "text-white"
+                }`}
+              />
+            </div>
 
             <div className="mb-6 px-2">
               <p className="text-normal font-semibold text-gray-400 mb-2 px-1">
@@ -439,7 +440,19 @@ const SongBar = () => {
               </p>
               {nextSongToPlay && (
                 <div className="px-3">
-                  <MiniCard song={nextSongToPlay} hideAlbum />
+                  <MiniCard
+                    song={nextSongToPlay}
+                    hideAlbum
+                    onClick={() => {
+                      const indexInQueue = activeQueue.findIndex(
+                        (s) => s.uri === nextSongToPlay.uri
+                      );
+                      if (indexInQueue !== -1) {
+                        setSongIndex(indexInQueue);
+                        playPauseSong(nextSongToPlay);
+                      }
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -452,7 +465,19 @@ const SongBar = () => {
               </p>
             )}
             {restOfQueue.map((song, index) => (
-              <MiniCard key={song.uri || index} song={song} hideAlbum />
+              <MiniCard
+                song={song}
+                hideAlbum
+                onClick={() => {
+                  const indexInQueue = activeQueue.findIndex(
+                    (s) => s.uri === song.uri
+                  );
+                  if (indexInQueue !== -1) {
+                    setSongIndex(indexInQueue);
+                    playPauseSong(song);
+                  }
+                }}
+              />
             ))}
           </div>
         </div>

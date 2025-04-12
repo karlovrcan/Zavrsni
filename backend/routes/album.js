@@ -24,6 +24,7 @@ router.post("/", verifyToken, async (req, res) => {
       image,
       artists,
       addedBy: req.user._id,
+      genre,
     });
 
     await album.save();

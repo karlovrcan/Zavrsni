@@ -28,33 +28,36 @@ const ArtistProfile = () => {
   const [activeTab, setActiveTab] = useState("popular");
   const [featuringPlaylists, setFeaturingPlaylists] = useState([]);
 
-  const { setSongs: setGlobalSongs, setSongIndex, playPauseSong } = useAudio();
+  const { loadQueue, setSongIndex, playPauseSong, currentSong } = useAudio();
 
   useEffect(() => {
     const fetchArtistData = async () => {
       if (!id || !accessToken) return;
 
       try {
-        // 1) Fetch the Artist object
+        // 1. Fetch Artist object
         const artistRes = await fetch(
           `https://api.spotify.com/v1/artists/${id}`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }
         );
+        if (artistRes.status === 429) throw new Error("Rate limited: artist");
         const artistData = await artistRes.json();
         setArtist(artistData);
 
-        // 2) Fetch artist's top tracks
+        // 2. Fetch top tracks (slight delay to prevent burst)
+        await new Promise((res) => setTimeout(res, 200)); // 200ms pause
         const topTracksRes = await fetch(
           `https://api.spotify.com/v1/artists/${id}/top-tracks?market=US`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }
         );
+        if (topTracksRes.status === 429)
+          throw new Error("Rate limited: top-tracks");
         const topTracksData = await topTracksRes.json();
 
-        // Format top tracks so each track has a .uri
         const formattedTracks = (topTracksData.tracks || []).map((track) => ({
           uri: track.uri,
           name: track.name,
@@ -65,10 +68,11 @@ const ArtistProfile = () => {
           duration_ms: track.duration_ms,
         }));
 
-        setTopTracks(formattedTracks);
-        setGlobalSongs(formattedTracks);
+        if (formattedTracks.length > 0) {
+          setTopTracks(formattedTracks);
+        }
 
-        // Extract a color from the artist’s main image or the first track’s album cover
+        // 3. Optional: Color palette from cover
         const img =
           artistData.images?.[0]?.url ||
           topTracksData.tracks?.[0]?.album?.images?.[0]?.url;
@@ -83,18 +87,21 @@ const ArtistProfile = () => {
             .catch((err) => console.error("Vibrant color error:", err));
         }
 
-        // 3) Fetch discography (albums & singles)
+        // 4. Fetch albums (another pause)
+        await new Promise((res) => setTimeout(res, 200));
         const albumsRes = await fetch(
           `https://api.spotify.com/v1/artists/${id}/albums?include_groups=album,single&limit=20`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }
         );
+        if (albumsRes.status === 429) throw new Error("Rate limited: albums");
         const albumsData = await albumsRes.json();
         setDiscography(albumsData.items || []);
 
-        // 4) Search for playlists featuring the artist
+        // 5. Fetch playlists featuring artist (final pause)
         if (artistData.name) {
+          await new Promise((res) => setTimeout(res, 200));
           const searchQuery = encodeURIComponent(artistData.name);
           const playlistRes = await fetch(
             `https://api.spotify.com/v1/search?q=${searchQuery}&type=playlist&limit=10`,
@@ -102,6 +109,8 @@ const ArtistProfile = () => {
               headers: { Authorization: `Bearer ${accessToken}` },
             }
           );
+          if (playlistRes.status === 429)
+            throw new Error("Rate limited: playlist search");
           const playlistData = await playlistRes.json();
           setFeaturingPlaylists(playlistData.playlists?.items || []);
         }
@@ -111,7 +120,24 @@ const ArtistProfile = () => {
     };
 
     fetchArtistData();
-  }, [id, accessToken, setGlobalSongs]);
+  }, [id, accessToken, loadQueue]);
+
+  const handlePlayPauseClick = () => {
+    if (!topTracks.length || !artist?.id) return;
+
+    const firstTrack = topTracks[0];
+    if (!firstTrack) return;
+
+    if (currentSong?.uri === firstTrack.uri && isPlaying) {
+      togglePlayPause();
+    } else {
+      loadQueue(topTracks, artist.id);
+      setSongIndex(0);
+      setTimeout(() => {
+        playPauseSong(firstTrack);
+      }, 0);
+    }
+  };
 
   // Check if user has followed this artist (local DB)
   useEffect(() => {
@@ -182,7 +208,6 @@ const ArtistProfile = () => {
     }
   };
 
-  // Render “Loading” if no artist data yet
   if (!artist) {
     return (
       <Layout>
@@ -191,7 +216,6 @@ const ArtistProfile = () => {
     );
   }
 
-  // Remove duplicates, then filter based on tab
   const uniqueReleases = discography.filter(
     (release, idx, self) => idx === self.findIndex((r) => r.id === release.id)
   );
@@ -205,7 +229,6 @@ const ArtistProfile = () => {
       .filter((r) => r.album_type === "single")
       .slice(0, 5);
   } else {
-    // "popular" or default
     filteredReleases = [...uniqueReleases]
       .sort(
         (a, b) =>
@@ -241,12 +264,7 @@ const ArtistProfile = () => {
             {/* Play button (plays the first top track) */}
             <button
               className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
-              onClick={() => {
-                setSongIndex(0);
-                if (topTracks[0]) {
-                  playPauseSong(topTracks[0]);
-                }
-              }}
+              onClick={handlePlayPauseClick}
             >
               <IoIosPlay className="text-5xl pl-1" />
             </button>
@@ -274,13 +292,13 @@ const ArtistProfile = () => {
           </div>
           <div className="w-full h-[2px] bg-white/10"></div>
 
-          {/* Top tracks list */}
           <div className="flex flex-col p-4">
             {topTracks.map((track, index) => (
               <MiniCard
                 key={track.uri || index}
                 song={track}
                 onClick={() => {
+                  loadQueue(topTracks, artist.id);
                   setSongIndex(index);
                   playPauseSong(track);
                 }}
@@ -288,7 +306,6 @@ const ArtistProfile = () => {
             ))}
           </div>
 
-          {/* Discography */}
           {discography.length > 0 && (
             <div className="px-2 mb-10 mt-10">
               <div className="flex justify-between items-center mb-4">

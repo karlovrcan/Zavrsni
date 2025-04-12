@@ -29,6 +29,7 @@ router.post("/", verifyToken, async (req, res) => {
         uri: track.uri || "unknown",
         album: track.album || "Unknown Album",
         albumId: track.albumId || "",
+        genre: track.genre || "",
         albumCover: track.albumCover || "https://via.placeholder.com/150",
         duration_ms: track.duration_ms || 0,
         artists: (track.artists || []).map((a) => ({ name: a.name })),

@@ -38,7 +38,7 @@ const Admin = () => {
 
   const fetchUsers = async (token) => {
     try {
-      const res = await axios.get("/admin/users", {
+      const res = await axios.get("/api/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(res.data);
@@ -52,7 +52,7 @@ const Admin = () => {
 
     try {
       const token = sessionStorage.getItem("token");
-      await axios.delete(`/admin/user/${id}`, {
+      await axios.delete(`/api/admin/user/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers((prev) => prev.filter((u) => u._id !== id));
@@ -66,7 +66,7 @@ const Admin = () => {
     try {
       const token = sessionStorage.getItem("token");
       const res = await axios.patch(
-        `/admin/user/${id}/role`,
+        `/api/admin/user/${id}/role`,
         { role: newRole },
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -19,24 +19,40 @@ router.get("/", authMiddleware, async (req, res) => {
 // POST a recently played song
 router.post("/", authMiddleware, async (req, res) => {
   const { song } = req.body;
+
+  // Validate input
   if (!song || !song.uri) {
-    return res.status(400).json({ success: false, error: "Invalid song" });
+    return res.status(400).json({
+      success: false,
+      error: "Invalid song: 'song.uri' is required.",
+    });
   }
 
   try {
-    // Remove any existing entry for this song (avoid duplicates)
+    // Remove any existing entry for this user+song to prevent duplicates
     await RecentlyPlayed.deleteOne({
       userId: req.user.id,
       "song.uri": song.uri,
     });
 
-    // Add new entry to top
-    const newEntry = new RecentlyPlayed({ userId: req.user.id, song });
+    // Build and save a new "RecentlyPlayed" entry
+    // If 'song.genre' is provided, it'll be stored in the model
+    const newEntry = new RecentlyPlayed({
+      userId: req.user.id,
+      song,
+    });
     await newEntry.save();
 
-    res.json({ success: true, message: "Saved to recently played" });
+    res.json({
+      success: true,
+      message: "Song saved to recently played.",
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Server error" });
+    console.error("Error saving recently played:", err);
+    res.status(500).json({
+      success: false,
+      error: "Server error",
+    });
   }
 });
 

@@ -13,6 +13,7 @@ const PlaylistSchema = new mongoose.Schema({
       album: { type: String, required: true },
       albumCover: { type: String, required: true },
       duration_ms: { type: Number, required: true },
+      genre: { type: String, default: "" },
     },
   ],
 

@@ -21,6 +21,7 @@ router.post("/", verifyToken, async (req, res) => {
     const newPlaylist = new Playlist({
       userId: req.user.id,
       name,
+      genre,
     });
     await newPlaylist.save();
 

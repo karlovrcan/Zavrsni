@@ -28,7 +28,13 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.json({ success: true, message: "Artist already followed" });
     }
 
-    const newArtist = new Artist({ id, name, image, userId: req.user.id });
+    const newArtist = new Artist({
+      id,
+      name,
+      image,
+      userId: req.user.id,
+      genres: Array.isArray(genres) ? genres : [],
+    });
     await newArtist.save();
 
     res.json({ success: true, artist: newArtist });

@@ -9,13 +9,10 @@ import { Vibrant } from "node-vibrant/browser";
 import { BsCheckCircleFill } from "react-icons/bs";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
+import { SlOptions } from "react-icons/sl";
 
-/**
- * Displays a Spotify playlist retrieved from the official API,
- * plus local user “save to sidebar” functionality.
- */
 const SpotifyPlaylist = () => {
-  const { id } = useParams(); // The Spotify playlist ID from the URL
+  const { id } = useParams();
   const { token } = useSelector((state) => state.account);
   const accessToken = useSelector((state) => state.spotify.accessToken);
 
@@ -28,17 +25,18 @@ const SpotifyPlaylist = () => {
   const {
     currentSong,
     isPlaying,
-    setSongs: setGlobalSongs,
     setSongIndex,
     playPauseSong,
     togglePlayPause,
     setCurrentPlaylistId,
     getShuffleStatus,
+    loadQueue,
   } = useAudio();
 
   useEffect(() => {
     const fetchPlaylist = async () => {
       if (!accessToken) return;
+
       try {
         const res = await fetch(`https://api.spotify.com/v1/playlists/${id}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -46,26 +44,23 @@ const SpotifyPlaylist = () => {
         const data = await res.json();
         setPlaylist(data);
 
-        // Format the tracks so each track uses .uri
+        // Format the tracks for convenience
         const formattedTracks =
           data?.tracks?.items
             ?.map(({ track }) => {
               if (!track) return null;
-              console.log("Track data1 =>", track);
               return {
                 uri: track.uri,
                 name: track.name,
                 artists: track.artists,
                 album: track.album?.name || "Unknown Album",
+                albumId: track.album?.id || "Unknown Id",
                 albumCover: track.album?.images?.[0]?.url || "",
                 duration_ms: track.duration_ms,
               };
             })
             .filter(Boolean) || [];
 
-        setGlobalSongs(formattedTracks);
-
-        // Extract color from the cover
         const coverImage =
           data.images?.[0]?.url || formattedTracks[0]?.albumCover || null;
         if (coverImage) {
@@ -86,8 +81,12 @@ const SpotifyPlaylist = () => {
     if (accessToken) {
       fetchPlaylist();
     }
-  }, [id, accessToken, setGlobalSongs]);
+  }, [id, accessToken]);
 
+  /**
+   * Check if this playlist is already saved in our local DB.
+   * If so, we'll show it as "saved" so user can remove it.
+   */
   useEffect(() => {
     const checkIfSaved = async () => {
       if (!playlist?.id || !token) return;
@@ -97,7 +96,7 @@ const SpotifyPlaylist = () => {
         });
         const data = await res.json();
         if (data.success) {
-          // Check if this playlist is already saved in the local DB
+          // Check if this playlist is already saved
           const alreadySaved = data.playlists.some(
             (pl) => pl.spotifyId === playlist.id
           );
@@ -112,7 +111,10 @@ const SpotifyPlaylist = () => {
     }
   }, [playlist, token]);
 
-  // Fade in effect
+  /**
+   * Simple fade-in effect. When the playlist is first loaded, we show
+   * a loading overlay, then fade in after a short delay.
+   */
   useEffect(() => {
     if (playlist) {
       setShowContent(false);
@@ -127,6 +129,9 @@ const SpotifyPlaylist = () => {
     }
   }, [playlist]);
 
+  /**
+   * Save this Spotify playlist to our local DB (sidebar) collection.
+   */
   const saveSpotifyPlaylistToSidebar = async () => {
     if (!playlist || !token) return;
 
@@ -150,6 +155,7 @@ const SpotifyPlaylist = () => {
               uri: track.uri || "unknown",
               name: track.name,
               album: track.album?.name || "Unknown Album",
+              albumId: track.album?.id || "Unknown Id",
               albumCover: track.album?.images?.[0]?.url || "",
               duration_ms: track.duration_ms || 0,
               artists:
@@ -164,6 +170,7 @@ const SpotifyPlaylist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(true);
+        // Optionally refresh your sidebar
         if (window.addSpotifyToSidebar) {
           window.addSpotifyToSidebar();
         }
@@ -177,7 +184,6 @@ const SpotifyPlaylist = () => {
     if (!playlist || !token) return;
 
     try {
-      // Fetch all saved Spotify playlists to find the DB _id
       const res = await fetch("http://localhost:5001/api/spotify-playlist", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -214,12 +220,12 @@ const SpotifyPlaylist = () => {
     playlist?.tracks?.items
       ?.map(({ track }) => {
         if (!track) return null;
-        console.log("Track data2 =>", track);
         return {
           uri: track.uri,
           name: track.name,
           artists: track.artists,
           album: track.album?.name || "Unknown Album",
+          albumId: track.album?.id || "Unknown Id",
           albumCover: track.album?.images?.[0]?.url || "",
           duration_ms: track.duration_ms,
         };
@@ -242,10 +248,10 @@ const SpotifyPlaylist = () => {
     const firstTrack = tracksToPlay[0];
     if (!firstTrack) return;
 
-    if (currentSong?.uri === firstTrack.uri) {
+    if (currentSong?.uri === firstTrack.uri && isPlaying) {
       togglePlayPause();
     } else {
-      setGlobalSongs(tracksToPlay);
+      loadQueue(tracksToPlay, playlist.id); // <--- the new approach
       setSongIndex(0);
 
       setTimeout(() => {
@@ -303,7 +309,6 @@ const SpotifyPlaylist = () => {
 
             <div className="w-full bg-black/50 pb-[100px]">
               <div className="flex items-center p-4 gap-4 mb-6 mt-6">
-                {/* Play / Pause */}
                 <button
                   className="bg-[#1db954] text-black font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
                   onClick={handlePlayPauseClick}
@@ -315,7 +320,6 @@ const SpotifyPlaylist = () => {
                   )}
                 </button>
 
-                {/* Save/Remove from sidebar */}
                 <button
                   onClick={() => {
                     if (isSaved) {
@@ -324,11 +328,14 @@ const SpotifyPlaylist = () => {
                       saveSpotifyPlaylistToSidebar();
                     }
                   }}
-                  className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
+                  className={`text-3xl font-bold p-1 ml-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
                     isSaved ? "text-[#1db954]" : "text-white"
                   }`}
                 >
                   {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
+                </button>
+                <button>
+                  <SlOptions className="text-3xl text-gray-200 ml-2 hover:text-white hover:scale-110" />
                 </button>
               </div>
 
@@ -344,7 +351,6 @@ const SpotifyPlaylist = () => {
                   <IoTimeOutline className="text-xl " />
                 </div>
               </div>
-
               <div className="w-full h-[2px] bg-white/10"></div>
 
               {/* Tracks list */}
@@ -354,6 +360,7 @@ const SpotifyPlaylist = () => {
                     key={track.uri || index}
                     song={track}
                     onClick={() => {
+                      loadQueue(formattedTracks, playlist.id);
                       setSongIndex(index);
                       playPauseSong(track);
                     }}

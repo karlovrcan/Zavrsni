@@ -10,6 +10,7 @@ const recentlyPlayedSchema = new mongoose.Schema({
     albumCover: String,
     albumId: String,
     duration_ms: Number,
+    genre: { type: String, default: "" },
   },
   playedAt: { type: Date, default: Date.now },
 });

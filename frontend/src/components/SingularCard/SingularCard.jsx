@@ -3,7 +3,13 @@ import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { useAudio } from "../../states/AudioProvider";
 import { Link } from "react-router-dom";
 
-const SingularCard = ({ song, handlePlay }) => {
+const SingularCard = ({
+  song,
+  handlePlay,
+  titleClassName,
+  subtitleClassName,
+  artistClassName,
+}) => {
   const { currentSong, isPlaying, togglePlayPause } = useAudio();
 
   const isCurrent = currentSong?.uri === song.uri;
@@ -32,16 +38,31 @@ const SingularCard = ({ song, handlePlay }) => {
 
       <div className="flex justify-between items-end mt-auto pb-2 mx-2">
         <div className="flex flex-col max-w-[70%]">
-          <p className="text-white text-3xl font-bold leading-tight">
+          <p
+            className={
+              titleClassName ??
+              "text-white text-[clamp(1.25rem,3vw,2rem)] font-extrabold leading-tight"
+            }
+          >
             {song.name}
           </p>
-          <p className="text-gray-400 text-sm mt-1">
-            Song •{" "}
-            {song.artists.map((artist, index) => (
+
+          <p
+            className={
+              subtitleClassName ?? "text-sm text-gray-400 font-medium mt-1"
+            }
+          >
+            Song
+          </p>
+
+          <p
+            className={artistClassName ?? "text-white font-medium text-sm mt-1"}
+          >
+            {song.artists?.map((artist, index) => (
               <Link
                 to={`/artist/${artist.id}`}
                 key={artist.id}
-                className="text-white font-medium hover:underline"
+                className="hover:underline"
               >
                 {artist.name}
                 {index < song.artists.length - 1 && ", "}

@@ -13,6 +13,7 @@ const albumSchema = new mongoose.Schema({
       id: String,
     },
   ],
+  genre: { type: String, default: "" },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

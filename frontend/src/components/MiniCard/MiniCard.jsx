@@ -133,12 +133,13 @@ const MiniCard = ({ song, onClick, hideAlbum = false, active = false }) => {
     }
   };
 
-  // Click “play” icon in the thumbnail
   const handlePlayPauseClick = () => {
     if (currentSong?.uri === songUri) {
       togglePlayPause();
     } else {
-      playPauseSong(song);
+      if (typeof onClick === "function") {
+        onClick();
+      }
     }
   };
 
@@ -220,7 +221,6 @@ const MiniCard = ({ song, onClick, hideAlbum = false, active = false }) => {
       )}
 
       <div className="flex items-center justify-end gap-2 w-[80px] text-sm relative pr-2">
-        {/* Add to playlist button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
