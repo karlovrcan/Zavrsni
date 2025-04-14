@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { IoIosPlay, IoIosPause } from "react-icons/io";
-import { SlOptions } from "react-icons/sl";
 import { useAudio } from "../../states/AudioProvider";
 import "./Card.css";
 
@@ -8,16 +9,29 @@ const truncateText = (text, length) => {
   return text.length > length ? text.substring(0, length) + "..." : text;
 };
 
-const Card = ({ song, type = "Track", playlists, handleAddSongToPlaylist }) => {
+const Card = ({
+  song,
+  type = "Track",
+  playlists,
+  handleAddSongToPlaylist,
+  onPlayRequest,
+  onClickCard,
+}) => {
   if (!song) {
     console.error("Card component received an undefined song prop.");
     return null;
   }
-
-  const { currentSong, isPlaying, playPauseSong, togglePlayPause } = useAudio();
-
+  const navigate = useNavigate();
+  const {
+    currentSong,
+    isPlaying,
+    playPauseSong,
+    togglePlayPause,
+    currentPlaylistId,
+  } = useAudio();
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState("");
+  const isActivePlaylist = currentPlaylistId === song.id;
 
   const handlePlaylistSelection = async () => {
     if (!selectedPlaylist) return;
@@ -36,48 +50,65 @@ const Card = ({ song, type = "Track", playlists, handleAddSongToPlaylist }) => {
   const formattedType = type.charAt(0).toUpperCase() + type.slice(1);
 
   return (
-    <div className="card grid-cols-1 sm:grid-cols-5 p-3 rounded-lg items-stretch relative mb-2">
-      <div className="relative flex justify-center items-center">
-        <img
-          src={
-            song.albumCover ||
-            "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+    <>
+      <div
+        className={`card grid-cols-1 sm:grid-cols-5 p-3 rounded-lg items-stretch relative mb-2 ${
+          isActivePlaylist ? "active" : ""
+        }`}
+        onClick={() => {
+          if (typeof onClickCard === "function") {
+            onClickCard();
+          } else {
+            navigate(`/spotify-playlist/${song.id}`);
           }
-          alt="Album Cover"
-          className={`w-full h-full object-cover ${
-            type === "artist" ? "rounded-full" : "rounded-lg"
-          }`}
-        />
+        }}
+      >
+        <div className="relative flex justify-center items-center">
+          <img
+            src={
+              song.albumCover ||
+              "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+            }
+            alt="Album Cover"
+            className={`w-full h-full object-cover ${
+              type === "artist" ? "rounded-full" : "rounded-lg"
+            }`}
+          />
 
-        <button
-          onClick={handlePlayPauseClick}
-          className={`play_btn ${
-            currentSong?.uri === song.uri && isPlaying ? "active" : ""
-          }`}
-        >
-          {currentSong?.uri === song.uri && isPlaying ? (
-            <IoIosPause className="text-white text-3xl" />
-          ) : (
-            <IoIosPlay className="text-white text-3xl" />
-          )}
-        </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof onPlayRequest === "function") {
+                onPlayRequest(song);
+              } else {
+                handlePlayPauseClick();
+              }
+            }}
+            className={`play_btn ${isActivePlaylist ? "active" : ""}`}
+          >
+            {isActivePlaylist && isPlaying ? (
+              <IoIosPause className="text-white text-3xl" />
+            ) : (
+              <IoIosPlay className="text-white text-3xl" />
+            )}
+          </button>
+        </div>
+        <div className="mt-2 text-start">
+          <h3 className="text-white font-semibold line-clamp-2 text-sm mb-1">
+            {truncateText(song.name, 35)}
+          </h3>
+
+          <p className="text-sm text-gray-400 mb-1">{formattedType}</p>
+
+          <p className="text-gray-400 text-sm">
+            {song.artists
+              .slice(0, 2)
+              .map((artist) => artist.name)
+              .join(", ") + (song.artists.length > 2 ? "..." : "")}
+          </p>
+        </div>
       </div>
-
-      <div className="mt-2 text-start">
-        <h3 className="text-white font-semibold line-clamp-2 text-sm mb-1">
-          {truncateText(song.name, 35)}
-        </h3>
-
-        <p className="text-sm text-gray-400 mb-1">{formattedType}</p>
-
-        <p className="text-gray-400 text-sm">
-          {song.artists
-            .slice(0, 2)
-            .map((artist) => artist.name)
-            .join(", ") + (song.artists.length > 2 ? "..." : "")}
-        </p>
-      </div>
-    </div>
+    </>
   );
 };
 

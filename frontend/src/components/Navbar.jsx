@@ -1,17 +1,18 @@
 import React, { useState, useContext } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom"; // ✅ Import `useNavigate`
+import { Link, useNavigate } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
 import { GoHome } from "react-icons/go";
 import logo from "../assets/logo.svg";
 import { userLogout } from "../states/Actors/userActors";
+import { useAudio } from "../states/AudioProvider";
 
 const Navbar = ({ onSearch }) => {
   const { isAuthenticated, user } = useSelector((state) => state.account);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+  const { clearQueue } = useAudio();
   const [query, setQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -24,9 +25,13 @@ const Navbar = ({ onSearch }) => {
 
   const logoutUser = () => {
     console.log("Navbar - Logging out...");
+    clearQueue();
     dispatch(userLogout());
     setShowDropdown(false);
     navigate("/");
+    setTimeout(() => {
+      window.location.reload();
+    }, 250);
   };
 
   return (

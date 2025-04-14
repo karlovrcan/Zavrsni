@@ -54,10 +54,10 @@ const SongBar = () => {
   const [queueDropdownOpen, setQueueDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       fetchPlaylists();
     }
-  }, [user, currentSongUri]);
+  }, [user, token, currentSongUri]);
 
   // Optionally fetch missing artist IDs for the currentSong
   useEffect(() => {
@@ -72,6 +72,7 @@ const SongBar = () => {
           `https://api.spotify.com/v1/search?q=${query}&type=artist&limit=1`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
+        if (!res.ok) return;
         const data = await res.json();
         if (data.artists?.items?.[0]) {
           currentSong.artists[0].id = data.artists.items[0].id;
@@ -412,7 +413,6 @@ const SongBar = () => {
                      flex flex-col"
         >
           <div className="pt-1">
-            {/* Container for “Queue” label + FaPlus icon */}
             <div className="flex items-center justify-between px-3 mb-4">
               <h2 className="text-white text-lg font-bold pt-1">Queue</h2>
               <FaPlus
@@ -441,6 +441,7 @@ const SongBar = () => {
               {nextSongToPlay && (
                 <div className="px-3">
                   <MiniCard
+                    key={`${nextSongToPlay.uri}-next`}
                     song={nextSongToPlay}
                     hideAlbum
                     onClick={() => {
@@ -466,6 +467,7 @@ const SongBar = () => {
             )}
             {restOfQueue.map((song, index) => (
               <MiniCard
+                key={`${song.uri}-${index}`}
                 song={song}
                 hideAlbum
                 onClick={() => {

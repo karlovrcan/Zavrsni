@@ -6,6 +6,7 @@ import { CiCirclePlus } from "react-icons/ci";
 import { useAudio } from "../../states/AudioProvider";
 import { Link, useNavigate } from "react-router-dom";
 import "./MiniCard.css";
+import GuestModalPortal from "../GuestModal/GuestModalPortal";
 
 const truncateText = (text, length) => {
   if (!text || typeof text !== "string") return "";
@@ -32,29 +33,31 @@ const MiniCard = ({ song, onClick, hideAlbum = false, active = false }) => {
     getRecommendedSongs,
   } = useAudio();
 
-  const { user, token } = useSelector((state) => state.account);
+  const { user, token, isAuthenticated } = useSelector(
+    (state) => state.account
+  );
+  const [showGuestModal, setShowGuestModal] = useState(false);
+  const isGuest = !isAuthenticated || user?.role === "guest";
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const navigate = useNavigate();
-
-  // The unique identifier for the track (front end)
   const songUri = song.uri;
 
-  // State for “Add to playlist” dropdown
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [addedToPlaylists, setAddedToPlaylists] = useState([]);
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       fetchPlaylists();
     }
-  }, [user, songUri]);
+  }, [user, token, songUri]);
 
   const fetchPlaylists = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/playlists", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) return;
       const data = await res.json();
       if (data.success) {
         setPlaylists(data.playlists);
@@ -146,140 +149,175 @@ const MiniCard = ({ song, onClick, hideAlbum = false, active = false }) => {
   const isActive = currentSong?.uri === songUri && isPlaying;
 
   return (
-    <div
-      className={`mini-card flex items-center justify-between p-2 rounded-sm cursor-pointer transition ${
-        isActive ? "active bg-black/40" : "hover:bg-black/40"
-      }`}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-4 flex-1 min-w-0 max-w-[400px]">
-        <div className="relative w-12 h-12">
-          <img
-            src={
-              song.albumCover ||
-              "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
-            }
-            alt="Album Cover"
-            className="w-12 h-12 rounded-md object-cover"
-          />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlayPauseClick();
-            }}
-            className={`mini-play_btn ${isActive ? "active" : ""}`}
-          >
-            {isActive ? (
-              <IoIosPause className="text-white text-xl ml-[6px]" />
-            ) : (
-              <IoIosPlay className="text-white text-xl ml-[7px]" />
-            )}
-          </button>
-        </div>
-
-        <div className="text-white truncate">
-          <h3 className="font-normal text-sm truncate">
-            {truncateText(song.name, 40)}
-          </h3>
-          <p className="text-gray-400 text-sm truncate">
-            {Array.isArray(song.artists)
-              ? song.artists.slice(0, 2).map((artist, index, arr) => (
-                  <Link
-                    key={artist.id || `${artist.name}-${index}`}
-                    to={`/artist/${artist.id || "#"}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="hover:underline text-gray-400"
-                  >
-                    {artist.name}
-                    {index < arr.length - 1 ? ", " : ""}
-                  </Link>
-                ))
-              : "Unknown Artist"}
-          </p>
-        </div>
-      </div>
-
-      {!hideAlbum && (
-        <div className="w-1/3 px-2 text-start">
-          {song.albumId ? (
+    <>
+      <div
+        className={`mini-card flex items-center justify-between p-2 rounded-sm cursor-pointer transition ${
+          isActive ? "active bg-black/40" : "hover:bg-black/40"
+        }`}
+        onClick={onClick}
+      >
+        <div className="flex items-center gap-4 flex-1 min-w-0 max-w-[400px]">
+          <div className="relative w-12 h-12">
+            <img
+              src={
+                song.albumCover ||
+                "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+              }
+              alt="Album Cover"
+              className="w-12 h-12 rounded-md object-cover"
+            />
             <button
               onClick={(e) => {
+                if (isGuest) {
+                  setShowGuestModal(true);
+                  return;
+                }
                 e.stopPropagation();
-                navigate(`/album/${song.albumId}`);
+                handlePlayPauseClick();
               }}
-              className="text-gray-400 text-sm transition hover:underline block max-w-full text-left hover:text-white"
-              title={song.album}
+              className={`mini-play_btn ${isActive ? "active" : ""}`}
             >
-              {song.album || "Unknown Album"}
+              {isActive ? (
+                <IoIosPause className="text-white text-xl ml-[6px]" />
+              ) : (
+                <IoIosPlay className="text-white text-xl ml-[7px]" />
+              )}
             </button>
-          ) : (
-            <p className="text-sm text-gray-400 truncate">
-              {song.album || "Unknown Album"}
+          </div>
+
+          <div className="text-white truncate">
+            <h3 className="font-normal text-sm truncate">
+              {truncateText(song.name, 40)}
+            </h3>
+            <p className="text-gray-400 text-sm truncate">
+              {Array.isArray(song.artists)
+                ? song.artists.slice(0, 2).map((artist, index, arr) => (
+                    <Link
+                      key={artist.id || `${artist.name}-${index}`}
+                      to={`/artist/${artist.id || "#"}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:underline text-gray-400"
+                    >
+                      {artist.name}
+                      {index < arr.length - 1 ? ", " : ""}
+                    </Link>
+                  ))
+                : "Unknown Artist"}
             </p>
-          )}
+          </div>
         </div>
-      )}
 
-      <div className="flex items-center justify-end gap-2 w-[80px] text-sm relative pr-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setDropdownOpen((prev) => !prev);
-          }}
-          className="add-icon-button text-xl text-green-400 transform hover:scale-110 transition relative pr-3"
-        >
-          {addedToPlaylists.length > 0 ? (
-            <BsCheckCircleFill />
-          ) : (
-            <CiCirclePlus />
-          )}
-        </button>
-
-        {dropdownOpen && (
-          <div className="absolute bottom-full mb-2 right-0 secondary_bg drop-shadow-[0_9px_10px_rgba(0,0,0,0.8)] rounded-md w-[15rem] p-1 z-50">
-            <button
-              className="block w-full text-left text-white px-2 py-1 hover:bg-gray-800"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSongRadio(song);
-                setDropdownOpen(false);
-              }}
-            >
-              Start Song Radio
-            </button>
-
-            {/* Show playlists */}
-            {playlists.length > 0 ? (
-              playlists.map((pl) => {
-                const isInThisPlaylist = addedToPlaylists.includes(pl._id);
-                return (
-                  <button
-                    key={pl._id}
-                    className="block w-full text-left text-white px-2 py-1 hover:bg-gray-800 flex justify-between items-center"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isInThisPlaylist) removeSongFromPlaylist(pl._id);
-                      else addSongToPlaylist(pl._id);
-                    }}
-                  >
-                    <span className="text-sm pb-1 pt-1">Add to {pl.name}</span>
-                    {isInThisPlaylist && (
-                      <BsCheckCircleFill className="text-green-500 ml-2" />
-                    )}
-                  </button>
-                );
-              })
+        {!hideAlbum && (
+          <div className="w-1/3 px-2 text-start">
+            {song.albumId ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/album/${song.albumId}`);
+                }}
+                className="text-gray-400 text-sm transition hover:underline block max-w-full text-left hover:text-white"
+                title={song.album}
+              >
+                {song.album || "Unknown Album"}
+              </button>
             ) : (
-              <p className="text-gray-400 text-sm px-2">No playlists</p>
+              <p className="text-sm text-gray-400 truncate">
+                {song.album || "Unknown Album"}
+              </p>
             )}
           </div>
         )}
 
-        <span className="text-gray-400 text-sm">
-          {formatDuration(song.duration_ms)}
-        </span>
+        <div className="flex items-center justify-end gap-2 w-[80px] text-sm relative pr-2">
+          <button
+            onClick={(e) => {
+              if (isGuest) {
+                setShowGuestModal(true);
+                return;
+              }
+              e.stopPropagation();
+              setDropdownOpen((prev) => !prev);
+            }}
+            className="add-icon-button text-xl text-green-400 transform hover:scale-110 transition relative pr-3"
+          >
+            {addedToPlaylists.length > 0 ? (
+              <BsCheckCircleFill />
+            ) : (
+              <CiCirclePlus />
+            )}
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute bottom-[40px] right-0 w-64 bg-[#242424] rounded-lg drop-shadow-[0_0_10px_rgba(0,0,0,0.9)] p-2 z-[999]">
+              <p className="text-gray-400 text-sm px-2 mb-2 mt-2">
+                Add to playlist
+              </p>
+              <div className="w-full h-[2px] bg-white/10" />
+              <div className="max-h-64 overflow-y-auto custom-scrollbar mt-1">
+                {playlists.length > 0 ? (
+                  playlists.map((pl) => {
+                    const isInThisPlaylist = addedToPlaylists.includes(pl._id);
+                    const playlistImage =
+                      pl.songs?.[0]?.albumCover ||
+                      "https://misc.scdn.co/liked-songs/liked-songs-640.png";
+
+                    return (
+                      <button
+                        key={pl._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isInThisPlaylist) {
+                            removeSongFromPlaylist(pl._id);
+                          } else {
+                            addSongToPlaylist(pl._id);
+                          }
+                          setDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between text-left px-2 py-2 rounded hover:bg-[#1a1a1a] transition ${
+                          isInThisPlaylist ? "bg-[#1db954]/20" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <img
+                            src={playlistImage}
+                            alt="playlist"
+                            className="w-8 h-8 rounded object-cover flex-shrink-0"
+                          />
+                          <span className="text-white text-sm truncate">
+                            {pl.name}
+                          </span>
+                        </div>
+                        {isInThisPlaylist ? (
+                          <BsCheckCircleFill className="text-green-500 text-lg flex-shrink-0" />
+                        ) : (
+                          <div className="w-4 h-4 border border-white/30 rounded-full flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="text-gray-500 text-sm px-2">
+                    No playlists found
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end px-2 pt-2">
+                <button
+                  onClick={() => setDropdownOpen(false)}
+                  className="text-gray-400 text-sm hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <span className="text-gray-400 text-sm">
+            {formatDuration(song.duration_ms)}
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

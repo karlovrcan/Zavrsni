@@ -422,6 +422,17 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
+  const clearQueue = () => {
+    setActiveQueue([]);
+    setOriginalSongs([]);
+    setRecommendedSongs([]);
+    setCurrentSong(null);
+    setSongIndex(0);
+    setIsPlaying(false);
+    setLocalCurrTime(0);
+    setLocalProgress(0);
+  };
+
   return (
     <AudioContext.Provider
       value={{
@@ -454,7 +465,9 @@ export const AudioProvider = ({ children }) => {
         recentlyPlayed,
 
         getShuffleStatus,
+        currentPlaylistId,
         setCurrentPlaylistId,
+        clearQueue,
       }}
     >
       {children}

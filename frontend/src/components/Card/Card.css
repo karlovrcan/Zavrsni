@@ -21,6 +21,10 @@
   background: rgba(0, 0, 0, 0.4);
 }
 
+.card.active {
+  background: rgba(0, 0, 0, 0.4);
+}
+
 .play_btn {
   display: flex;
   align-items: center;
@@ -49,4 +53,9 @@
 
 .play_btn:active {
   transform: translate(-50%, -50%) scale(1.2);
+}
+
+.card.active .play_btn {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }

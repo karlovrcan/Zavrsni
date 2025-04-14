@@ -73,7 +73,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res
@@ -81,10 +80,11 @@ router.post("/login", async (req, res) => {
         .json({ success: false, message: "Login cretentials incorrect." });
     }
 
-    // Sign and return a JWT token
     const token = await generateToken(user._id);
+    const capitalizedUsername =
+      user.username.charAt(0).toUpperCase() + user.username.slice(1);
     return res.status(200).json({
-      message: "Login successful",
+      message: `Welcome ${capitalizedUsername}`,
       token,
       success: true,
       user,

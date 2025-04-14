@@ -184,8 +184,10 @@ router.post("/:playlistId/remove-song", verifyToken, async (req, res) => {
  */
 router.get("/:id", async (req, res) => {
   try {
-    // If songs are subdocs, .populate() won't do anything. You already have them in `playlist.songs`.
-    const playlist = await Playlist.findById(req.params.id);
+    const playlist = await Playlist.findById(req.params.id).populate(
+      "userId",
+      "username"
+    );
     if (!playlist) {
       return res
         .status(404)

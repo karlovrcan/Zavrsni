@@ -16,7 +16,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
 // Follow an artist
 router.post("/", authMiddleware, async (req, res) => {
-  const { id, name, image } = req.body;
+  const { id, name, image, genres } = req.body;
 
   if (!id || !name) {
     return res.status(400).json({ success: false, error: "Missing fields" });

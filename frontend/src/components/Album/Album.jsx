@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
-import { IoIosPlay } from "react-icons/io";
-import { BsCheckCircleFill } from "react-icons/bs";
+import { IoIosPlay, IoIosPause } from "react-icons/io";
+import { BsCheckCircleFill, BsFillTrashFill } from "react-icons/bs";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
 import { Vibrant } from "node-vibrant/browser";
+import GuestModal from "../GuestModal/GuestModal";
 
 const Album = () => {
   const { token } = useSelector((state) => state.account);
   const { id } = useParams();
   const accessToken = useSelector((state) => state.spotify.accessToken);
+  const { user, isAuthenticated } = useSelector((state) => state.account);
+  const isGuest = !isAuthenticated || user?.role === "guest";
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
   const [albumData, setAlbumData] = useState(null);
   const [bgColor, setBgColor] = useState("#000000");
@@ -28,10 +33,13 @@ const Album = () => {
     isPlaying,
     currentSong,
     togglePlayPause,
+    currentPlaylistId,
+    setCurrentPlaylistId,
   } = useAudio();
+
   useEffect(() => {
     const fetchAlbum = async () => {
-      if (!id || !accessToken || !token) return;
+      if (!id || !accessToken) return;
 
       try {
         const spotifyRes = await fetch(
@@ -65,7 +73,7 @@ const Album = () => {
     };
 
     fetchAlbum();
-  }, [id, accessToken, token]);
+  }, [id, accessToken]);
 
   useEffect(() => {
     const checkIfSaved = async () => {
@@ -128,6 +136,19 @@ const Album = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(true);
+        toast("Album added to your profile.", {
+          position: "bottom-center",
+          hideProgressBar: true,
+
+          style: {
+            background: "#242424",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "6px",
+            marginBottom: "90px",
+          },
+          icon: <BsCheckCircleFill color="#1db954" />,
+        });
         if (window.addAlbumToSidebar) {
           window.addAlbumToSidebar();
         }
@@ -159,6 +180,18 @@ const Album = () => {
         const deleteData = await deleteRes.json();
         if (deleteData.success) {
           setIsSaved(false);
+          toast("Album removed from your profile.", {
+            position: "bottom-center",
+            hideProgressBar: true,
+            style: {
+              background: "#242424",
+              color: "#fff",
+              fontWeight: "500",
+              borderRadius: "6px",
+              marginBottom: "90px",
+            },
+            icon: <BsFillTrashFill color="#ff4d4d" />,
+          });
           if (window.addAlbumToSidebar) {
             window.addAlbumToSidebar();
           }
@@ -183,116 +216,142 @@ const Album = () => {
   const albumCoverImage = albumData?.images?.[0]?.url || "";
 
   const handlePlayPauseClick = () => {
+    if (isGuest) {
+      setShowGuestModal(true);
+      return;
+    }
+
     if (!formattedTracks.length || !albumData?.id) return;
 
-    const firstTrack = formattedTracks[0];
-    if (!firstTrack) return;
+    const isSameAlbum = currentPlaylistId === albumData.id;
 
-    if (currentSong?.uri === firstTrack.uri && isPlaying) {
+    if (isSameAlbum) {
       togglePlayPause();
-    } else {
-      loadQueue(formattedTracks, albumData.id);
-      setSongIndex(0);
-      setTimeout(() => {
-        playPauseSong(firstTrack);
-      }, 0);
+      return;
     }
+
+    loadQueue(formattedTracks, albumData.id);
+    setCurrentPlaylistId(albumData.id);
+    setSongIndex(0);
+    playPauseSong(formattedTracks[0]);
   };
 
+  const isAlbumPlaying =
+    currentPlaylistId === albumData?.id &&
+    formattedTracks.some((track) => track.uri === currentSong?.uri) &&
+    isPlaying;
+
   return (
-    <Layout>
-      <div className="relative h-[calc(100vh-155px)]">
-        {isLoading && (
-          <div className="absolute inset-0 flex justify-center items-center z-50 bg-black">
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#1db954]" />
-              <p className="text-white text-lg">Loading album...</p>
+    <>
+      <Layout>
+        <div className="relative h-[calc(100vh-155px)]">
+          {isLoading && (
+            <div className="absolute inset-0 flex justify-center items-center z-50 bg-black">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#1db954]" />
+                <p className="text-white text-lg">Loading album...</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div
-          className={`transition-opacity duration-500 h-full ${
-            showContent ? "opacity-100" : "opacity-0"
-          }`}
-        >
           <div
-            style={{
-              background: `linear-gradient(135deg, ${bgColor} 0%, #000000 100%)`,
-            }}
-            className="secondary_bg rounded-lg h-full overflow-auto custom-scrollbar"
+            className={`transition-opacity duration-500 h-full ${
+              showContent ? "opacity-100" : "opacity-0"
+            }`}
           >
-            <div className="flex p-4">
-              <div className="w-1/4">
-                <img
-                  src={albumCoverImage}
-                  alt="Album Cover"
-                  className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
-                />
-              </div>
+            <div
+              style={{
+                background: `linear-gradient(135deg, ${bgColor} 0%, #000000 100%)`,
+              }}
+              className="secondary_bg rounded-lg h-full overflow-auto custom-scrollbar"
+            >
+              <div className="flex p-4">
+                <div className="w-1/4">
+                  <img
+                    src={albumCoverImage}
+                    alt="Album Cover"
+                    className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
+                  />
+                </div>
 
-              <div className="w-3/4 flex items-end pl-6 overflow-hidden">
-                <h1
-                  className="text-white font-extrabold w-full break-words text-[clamp(2.5rem,5vw,2rem)] leading-tight"
-                  title={albumData?.name}
-                >
-                  {albumData?.name || "Unnamed Album"}
-                </h1>
-              </div>
-            </div>
-
-            <div className="w-full bg-black/30 pb-[75px]">
-              <div className="flex items-center p-4 gap-4 mb-6 mt-6">
-                <button
-                  className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
-                  onClick={handlePlayPauseClick}
-                >
-                  <IoIosPlay className="text-5xl text-black pl-1" />
-                </button>
-
-                <button
-                  onClick={() =>
-                    isSaved ? deleteAlbumFromSidebar() : saveAlbumToSidebar()
-                  }
-                  className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
-                    isSaved ? "text-[#1db954]" : "text-white"
-                  }`}
-                >
-                  {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-                <p className="font-semibold w-1/3 text-center pr-[70px]">
-                  Title / Author
-                </p>
-                <p className="font-semibold w-1/3 text-center ml-[60px]">
-                  Album
-                </p>
-                <div className="w-1/3 flex justify-end pr-6">
-                  <IoTimeOutline className="text-xl " />
+                <div className="w-3/4 flex items-end pl-6 overflow-hidden">
+                  <h1
+                    className="text-white font-extrabold w-full break-words text-[clamp(2.5rem,5vw,2rem)] leading-tight"
+                    title={albumData?.name}
+                  >
+                    {albumData?.name || "Unnamed Album"}
+                  </h1>
                 </div>
               </div>
-              <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
 
-              <div className="flex flex-col gap-2 p-4">
-                {formattedTracks.map((track, index) => (
-                  <MiniCard
-                    key={track.uri || index}
-                    song={track}
+              <div className="w-full bg-black/30 pb-[75px]">
+                <div className="flex items-center p-4 gap-4 mb-6 mt-6">
+                  <button
+                    className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
+                    onClick={handlePlayPauseClick}
+                  >
+                    {isAlbumPlaying ? (
+                      <IoIosPause className="text-5xl text-black" />
+                    ) : (
+                      <IoIosPlay className="text-5xl text-black pl-1" />
+                    )}
+                  </button>
+
+                  <button
                     onClick={() => {
-                      loadQueue(formattedTracks, albumData.id);
-                      setSongIndex(index);
-                      playPauseSong(track);
+                      if (isGuest) {
+                        setShowGuestModal(true);
+                        return;
+                      }
+                      isSaved ? deleteAlbumFromSidebar() : saveAlbumToSidebar();
                     }}
-                  />
-                ))}
+                    className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
+                      isSaved ? "text-[#1db954]" : "text-white"
+                    }`}
+                  >
+                    {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
+                  <p className="font-semibold w-1/3 text-center pr-[70px]">
+                    Title / Author
+                  </p>
+                  <p className="font-semibold w-1/3 text-center ml-[60px]">
+                    Album
+                  </p>
+                  <div className="w-1/3 flex justify-end pr-6">
+                    <IoTimeOutline className="text-xl " />
+                  </div>
+                </div>
+                <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
+
+                <div className="flex flex-col gap-2 p-4">
+                  {formattedTracks.map((track, index) => (
+                    <MiniCard
+                      key={track.uri || index}
+                      song={track}
+                      onClick={() => {
+                        if (isGuest) {
+                          setShowGuestModal(true);
+                          return;
+                        }
+                        loadQueue(formattedTracks, albumData.id);
+                        setSongIndex(index);
+                        playPauseSong(track);
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+      {showGuestModal && (
+        <GuestModal onClose={() => setShowGuestModal(false)} />
+      )}
+    </>
   );
 };
 

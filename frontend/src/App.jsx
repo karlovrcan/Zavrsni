@@ -26,6 +26,9 @@ import { fetchSongs } from "./api/spotifyService";
 import SongRadio from "./components/SongRadio.jsx/SongRadio";
 import RecentlyPlayed from "./components/RecentlyPlayed/RecentlyPlayed";
 import CategoryPlaylist from "./components/CategoryPlaylist/CategoryPlaylist";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 const AppContent = () => {
   const dispatch = useDispatch();
   const accessToken = useSelector((state) => state.spotify.accessToken);
@@ -113,7 +116,7 @@ const AppContent = () => {
         <Route path="/recently-played" element={<RecentlyPlayed />} />
         <Route path="/category/:categoryId" element={<CategoryPlaylist />} />
       </Routes>
-
+      <ToastContainer position="bottom-right" autoClose={3000} theme="dark" />
       {!hideNavAndSongBar && <Songbar />}
     </>
   );

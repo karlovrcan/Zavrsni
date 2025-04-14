@@ -3,38 +3,34 @@ import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
-import { IoIosPlay } from "react-icons/io";
+import { IoIosPlay, IoIosPause } from "react-icons/io";
 import { BsCheckCircleFill } from "react-icons/bs";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
 import fallbackImage from "../../assets/playlistCover.png";
 
-/**
- * A local “custom” playlist from your own database,
- * identified by :id in the URL.
- */
 const Playlist = () => {
   const { token } = useSelector((state) => state.account);
   const { id } = useParams();
 
   const [playlist, setPlaylist] = useState(null);
-  const [songs, setSongs] = useState([]); // LOCAL state for display
+  const [songs, setSongs] = useState([]);
   const [bgColor, setBgColor] = useState("#000000");
   const [isSaved, setIsSaved] = useState(true);
 
-  // We no longer destructure setSongs: setGlobalSongs. Instead, we use loadQueue.
   const {
     playPauseSong,
-    loadQueue, // from new AudioProvider
-    setSongIndex, // so we can choose which track is active in the global queue
+    loadQueue,
+    setSongIndex,
+    currentSong,
+    isPlaying,
+    togglePlayPause,
+    currentPlaylistId,
+    setCurrentPlaylistId,
   } = useAudio();
 
   const scrollRef = useRef(null);
-
-  const scrollToTop = () => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   const fetchPlaylist = async () => {
     try {
@@ -52,8 +48,6 @@ const Playlist = () => {
 
       setPlaylist(data.playlist);
       setSongs(data.playlist.songs);
-      // NOTE: We do NOT automatically loadQueue(...) here, so that simply
-      // viewing the playlist won't overwrite the user's existing queue.
     } catch (error) {
       console.error("Error fetching playlist:", error);
     }
@@ -61,10 +55,8 @@ const Playlist = () => {
 
   useEffect(() => {
     fetchPlaylist();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Vibrant-based color extraction if the first track has an albumCover
   useEffect(() => {
     if (playlist?.songs?.length > 0) {
       const firstImg = playlist.songs[0].albumCover;
@@ -87,7 +79,6 @@ const Playlist = () => {
     }
   }, [playlist]);
 
-  // Refresh if a track is added/removed from this playlist
   useEffect(() => {
     window.refreshActivePlaylist = fetchPlaylist;
     return () => {
@@ -95,7 +86,6 @@ const Playlist = () => {
     };
   }, [id]);
 
-  // If user deletes the entire playlist
   const deleteCustomPlaylist = async () => {
     if (!playlist?._id) return;
     try {
@@ -111,7 +101,7 @@ const Playlist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(false);
-        window.addPlaylistToSidebar?.(); // Refresh sidebar if you have that logic
+        window.addPlaylistToSidebar?.();
       }
     } catch (err) {
       console.error("Failed to delete custom playlist:", err);
@@ -130,6 +120,11 @@ const Playlist = () => {
     ? playlist.songs[0].albumCover
     : fallbackImage;
 
+  const isCurrentPlaylistPlaying =
+    currentPlaylistId === playlist._id &&
+    songs.some((s) => s.uri === currentSong?.uri) &&
+    isPlaying;
+
   return (
     <Layout>
       <div
@@ -147,31 +142,47 @@ const Playlist = () => {
               className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
             />
           </div>
-          <div className="w-3/4 place-content-end pl-2 font-extrabold text-7xl">
-            {playlist.name}
+          <div className="w-3/4 flex flex-col justify-end pl-6 overflow-hidden">
+            <h1
+              className="text-white font-extrabold w-full break-words text-[clamp(3rem,5vw,1.5rem)] leading-tight"
+              title={playlist?.name}
+            >
+              {playlist?.name}
+            </h1>
+            <p className="text-gray-300 text-sm mt-2 font-sm">
+              Playlist by{" "}
+              <span className="text-white font-bold">
+                {playlist.userId?.username || "Unknown"}
+              </span>
+            </p>
           </div>
         </div>
 
         <div className="w-full bg-black/50 pb-[110px]">
           <div className="flex items-center pt-6 pl-6 gap-4 mb-6 mt-6">
-            {/* Play the entire playlist from the first track */}
             <button
               className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
               onClick={() => {
-                // 1) Load the queue with these songs from the local playlist
+                if (currentPlaylistId === playlist._id) {
+                  togglePlayPause();
+                  return;
+                }
+
                 loadQueue(songs, playlist._id);
-                // 2) Start from the first track
+                setCurrentPlaylistId(playlist._id);
                 setSongIndex(0);
-                // 3) Actually play it
                 if (songs[0]) {
                   playPauseSong(songs[0]);
                 }
               }}
             >
-              <IoIosPlay className="text-5xl text-black pl-1" />
+              {isCurrentPlaylistPlaying ? (
+                <IoIosPause className="text-4xl text-black" />
+              ) : (
+                <IoIosPlay className="text-4xl text-black pl-1" />
+              )}
             </button>
 
-            {/* Option to delete the entire playlist */}
             <button
               onClick={isSaved ? deleteCustomPlaylist : undefined}
               className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
@@ -182,19 +193,17 @@ const Playlist = () => {
             </button>
           </div>
 
-          {/* Table header */}
           <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-            <p className="font-semibold w-1/3 text-center pr-[100px]">
+            <p className="font-semibold w-1/3 text-center pr-[90px]">
               Title / Author
             </p>
-            <p className="font-semibold w-1/3 text-center pr-2">Album</p>
+            <p className="font-semibold w-1/3 text-center pl-[60px]">Album</p>
             <div className="w-1/3 flex justify-end pr-6">
               <IoTimeOutline className="text-xl" />
             </div>
           </div>
           <div className="w-full h-[2px] bg-white/10"></div>
 
-          {/* Playlist songs */}
           <div className="flex flex-col px-4 pt-2">
             {songs.length > 0 ? (
               songs.map((song, index) => (

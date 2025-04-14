@@ -5,7 +5,9 @@ import { BiLibrary } from "react-icons/bi";
 import { Link, useNavigate } from "react-router-dom";
 
 const Sidebar = () => {
-  const { user, token } = useSelector((state) => state.account);
+  const { user, token, isAuthenticated } = useSelector(
+    (state) => state.account
+  );
   const [playlists, setPlaylists] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
@@ -13,16 +15,19 @@ const Sidebar = () => {
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [playlistName, setPlaylistName] = useState("");
+  const [libraryFilter, setLibraryFilter] = useState("all");
+  const isGuest = !isAuthenticated || user?.role === "guest";
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) fetchPlaylists();
-    fetchAlbums();
-    fetchSpotifyPlaylists();
-    fetchArtists();
-  }, [user]);
+    if (user && token) {
+      fetchPlaylists();
+      fetchAlbums();
+      fetchSpotifyPlaylists();
+      fetchArtists();
+    }
+  }, [user, token]);
 
-  // Attach global triggers to re-fetch data
   useEffect(() => {
     window.addAlbumToSidebar = fetchAlbums;
     window.addSpotifyToSidebar = fetchSpotifyPlaylists;
@@ -35,8 +40,6 @@ const Sidebar = () => {
       window.addFollowedArtistToSidebar = null;
     };
   }, []);
-
-  // --- CREATE PLAYLIST ---
 
   const handleCreatePlaylist = async () => {
     if (!playlistName.trim()) return;
@@ -51,7 +54,6 @@ const Sidebar = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Patch user info so Sidebar shows "Playlist • yourName"
         const patchedPlaylist = {
           ...data.playlist,
           userId: { _id: user._id, username: user.username },
@@ -66,8 +68,6 @@ const Sidebar = () => {
     }
   };
 
-  // --- FETCHING ---
-
   const fetchArtists = async () => {
     try {
       const response = await fetch(
@@ -76,6 +76,7 @@ const Sidebar = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      if (!response.ok) return;
       const data = await response.json();
       if (data.success) {
         setArtists(data.artists);
@@ -90,6 +91,7 @@ const Sidebar = () => {
       const response = await fetch("http://localhost:5001/api/playlists", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) return;
       const data = await response.json();
       if (data.success) {
         setPlaylists(data.playlists);
@@ -104,6 +106,7 @@ const Sidebar = () => {
       const response = await fetch("http://localhost:5001/api/albums", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) return;
       const data = await response.json();
       if (data.success) {
         setAlbums(data.albums);
@@ -121,6 +124,7 @@ const Sidebar = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      if (!response.ok) return;
       const data = await response.json();
       if (data.success) {
         setSpotifyPlaylists(data.playlists);
@@ -202,143 +206,174 @@ const Sidebar = () => {
               </div>
             </div>
           )}
+          {!isGuest && (
+            <div className="flex gap-2 px-2 mb-3">
+              {["all", "playlists", "albums", "artists"].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setLibraryFilter(filter)}
+                  className={`px-3 py-1 text-sm rounded-full font-medium transition-colors duration-200 ${
+                    libraryFilter === filter
+                      ? "bg-white text-black"
+                      : "bg-[#2a2a2a] text-white"
+                  }`}
+                >
+                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="your_library flex flex-col overflow-y-auto pr-2 h-full">
-            {user?.role === "guest" ? (
+            {isGuest ? (
               <div className="tertiary_bg rounded-lg px-4 py-6">
                 <p className="font-bold">Create your first playlist.</p>
                 <p className="font-semibold">It's easy, we'll help you.</p>
-                <button className="rounded-full text-black font-semibold mt-4 px-4 py-1 bg-white">
-                  Create playlist
+                <button
+                  onClick={() => navigate("/login")}
+                  className="rounded-full text-black font-semibold mt-4 px-4 py-1 bg-white transform transition hover:scale-105"
+                >
+                  Log in to create playlist
                 </button>
               </div>
             ) : (
               <>
-                {/* Spotify playlists */}
-                {spotifyPlaylists.length > 0 && (
-                  <>
-                    <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                      Playlists
-                    </div>
-                    {spotifyPlaylists.map((pl) => (
-                      <div
-                        key={pl._id}
-                        className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
-                        onClick={() =>
-                          navigate(`/spotify-playlist/${pl.spotifyId}`)
-                        }
-                      >
-                        <img
-                          src={pl.image}
-                          alt="Playlist Cover"
-                          className="w-12 h-12 rounded-md object-cover"
-                        />
-                        <div className="flex-grow overflow-hidden">
-                          <div className="text-white text-sm font-medium truncate">
-                            {pl.name}
-                          </div>
-                          <div className="text-xs text-gray-400 truncate">
-                            Playlist • {pl.owner?.name || "Unknown"}
+                {/* Spotify Playlists */}
+                {["all", "playlists"].includes(libraryFilter) &&
+                  spotifyPlaylists.length > 0 && (
+                    <>
+                      <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                        Playlists
+                      </div>
+                      {spotifyPlaylists.map((pl) => (
+                        <div
+                          key={pl._id}
+                          className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                          onClick={() =>
+                            navigate(`/spotify-playlist/${pl.spotifyId}`)
+                          }
+                        >
+                          <img
+                            src={pl.image}
+                            alt="Playlist Cover"
+                            className="w-12 h-12 rounded-md object-cover"
+                          />
+                          <div className="flex-grow overflow-hidden">
+                            <div className="text-white text-sm font-medium truncate">
+                              {pl.name}
+                            </div>
+                            <div className="text-xs text-gray-400 truncate">
+                              Playlist • {pl.owner?.name || "Unknown"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </>
-                )}
+                      ))}
+                    </>
+                  )}
 
-                {/* Local playlists */}
-                {playlists.map((playlist) => {
-                  const playlistImage = playlist?.songs?.length
-                    ? playlist.songs[0].albumCover
-                    : "../src/assets/playlistCover.png";
+                {/* Local Playlists */}
+                {["all", "playlists"].includes(libraryFilter) &&
+                  playlists.length > 0 && (
+                    <>
+                      {playlists.map((playlist) => {
+                        const playlistImage = playlist?.songs?.length
+                          ? playlist.songs[0].albumCover
+                          : "../src/assets/playlistCover.png";
 
-                  return (
-                    <div
-                      key={playlist._id}
-                      className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
-                      onClick={() => navigate(`/playlist/${playlist._id}`)}
-                    >
-                      <img
-                        src={playlistImage}
-                        alt="Playlist Cover"
-                        className="w-12 h-12 rounded-md object-cover"
-                      />
-                      <div className="flex-grow overflow-hidden">
-                        <div className="text-white text-sm font-normal leading-tight">
-                          <div className="truncate font-medium">
-                            {playlist.name}
+                        return (
+                          <div
+                            key={playlist._id}
+                            className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                            onClick={() =>
+                              navigate(`/playlist/${playlist._id}`)
+                            }
+                          >
+                            <img
+                              src={playlistImage}
+                              alt="Playlist Cover"
+                              className="w-12 h-12 rounded-md object-cover"
+                            />
+                            <div className="flex-grow overflow-hidden">
+                              <div className="text-white text-sm font-normal leading-tight">
+                                <div className="truncate font-medium">
+                                  {playlist.name}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  Playlist •{" "}
+                                  {playlist.userId?.username || "Unknown"}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-400">
-                            Playlist • {playlist.userId?.username || "Unknown"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                        );
+                      })}
+                    </>
+                  )}
 
                 {/* Albums */}
-                {albums.length > 0 && (
-                  <>
-                    <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                      Albums
-                    </div>
-                    {albums.map((album) => (
-                      <div
-                        key={album._id}
-                        className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
-                        onClick={() => navigate(`/album/${album.spotifyId}`)}
-                      >
-                        <img
-                          src={album.image}
-                          alt="Album Cover"
-                          className="w-12 h-12 rounded-md object-cover"
-                        />
-                        <div className="flex-grow overflow-hidden">
-                          <div className="text-white text-sm font-normal leading-tight">
-                            <div className="truncate font-medium">
-                              {album.name}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              Album •{" "}
-                              {album.artists?.[0]?.name || "Unknown Artist"}
+                {["all", "albums"].includes(libraryFilter) &&
+                  albums.length > 0 && (
+                    <>
+                      <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                        Albums
+                      </div>
+                      {albums.map((album) => (
+                        <div
+                          key={album._id}
+                          className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer relative"
+                          onClick={() => navigate(`/album/${album.spotifyId}`)}
+                        >
+                          <img
+                            src={album.image}
+                            alt="Album Cover"
+                            className="w-12 h-12 rounded-md object-cover"
+                          />
+                          <div className="flex-grow overflow-hidden">
+                            <div className="text-white text-sm font-normal leading-tight">
+                              <div className="truncate font-medium">
+                                {album.name}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                Album •{" "}
+                                {album.artists?.[0]?.name || "Unknown Artist"}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </>
-                )}
+                      ))}
+                    </>
+                  )}
 
                 {/* Artists */}
-                {artists.length > 0 && (
-                  <>
-                    <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                      Artists
-                    </div>
-                    {artists.map((artist) => (
-                      <div
-                        key={artist.id}
-                        className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer"
-                        onClick={() => navigate(`/artist/${artist.id}`)}
-                      >
-                        <img
-                          src={artist.image || "/default_artist.png"}
-                          alt="Artist"
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div className="flex-grow overflow-hidden">
-                          <div className="text-white text-sm font-medium truncate">
-                            {artist.name}
-                          </div>
-                          <div className="text-xs text-gray-400 truncate">
-                            Artist
+                {["all", "artists"].includes(libraryFilter) &&
+                  artists.length > 0 && (
+                    <>
+                      <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
+                        Artists
+                      </div>
+                      {artists.map((artist) => (
+                        <div
+                          key={artist.id}
+                          className="flex items-center gap-4 secondary_bg hover:bg-[#242424] transition-colors duration-200 rounded-lg p-2 cursor-pointer"
+                          onClick={() => navigate(`/artist/${artist.id}`)}
+                        >
+                          <img
+                            src={artist.image || "/default_artist.png"}
+                            alt="Artist"
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                          <div className="flex-grow overflow-hidden">
+                            <div className="text-white text-sm font-medium truncate">
+                              {artist.name}
+                            </div>
+                            <div className="text-xs text-gray-400 truncate">
+                              Artist
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </>
-                )}
+                      ))}
+                    </>
+                  )}
               </>
             )}
           </div>

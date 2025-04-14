@@ -6,7 +6,6 @@ import logo from "../../assets/logo.svg";
 import "./login.css";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { userActor } from "../../states/Actors/userActors";
 import { handleSpotifyCallback } from "../../states/Actions/SpotifyActions";
 
 const Login = () => {
@@ -18,7 +17,6 @@ const Login = () => {
   });
   const navigate = useNavigate();
 
-  // 1) CHANGED: read "access_token" instead of "token"
   const [searchParams] = useSearchParams();
   const spotifyToken = searchParams.get("access_token");
 
@@ -35,14 +33,11 @@ const Login = () => {
 
         const data = await res.json();
         console.log("✅ Spotify user data:", data);
-        toast.success(`Welcome, ${data.display_name || "Spotify user"}!`);
       } catch (err) {
-        console.error("❌ Spotify token verification failed:", err);
+        console.error("Spotify token verification failed:", err);
         toast.error("Spotify token is invalid or missing scopes.");
       }
     };
-
-    // 2) If we found `access_token`, store it and verify
     if (spotifyToken) {
       sessionStorage.setItem("spotify_access_token", spotifyToken);
       dispatch(handleSpotifyCallback(spotifyToken));
@@ -64,12 +59,12 @@ const Login = () => {
 
       const Data = await res.json();
       if (Data.success) {
-        toast.success(Data.message);
+        toast.success(Data.message, {
+          position: "bottom-right",
+        });
 
-        // ✅ Store token in sessionStorage
         sessionStorage.setItem("token", Data.token);
 
-        // ✅ Dispatch to Redux with user and token
         dispatch({
           type: "USER_LOGGED_IN",
           payload: {
@@ -80,11 +75,15 @@ const Login = () => {
 
         navigate("/");
       } else {
-        toast.error(Data.message);
+        toast.error(Data.message, {
+          position: "bottom-right",
+        });
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.", {
+        position: "bottom-right",
+      });
     }
   };
 
