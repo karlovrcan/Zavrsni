@@ -109,6 +109,22 @@ const Playlist = () => {
     );
   }
 
+  const totalSongs = songs.length;
+  const totalDurationMs = songs.reduce(
+    (acc, song) => acc + song.duration_ms,
+    0
+  );
+  const minutes = Math.floor(totalDurationMs / 60000);
+  const seconds = Math.floor((totalDurationMs % 60000) / 1000);
+  const formattedDuration = `${minutes} min ${seconds
+    .toString()
+    .padStart(2, "0")} sec`;
+  const createdDate = new Date(playlist.createdAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <Layout>
       <div
@@ -133,11 +149,14 @@ const Playlist = () => {
             >
               {playlist?.name}
             </h1>
-            <p className="text-gray-300 text-sm mt-2 font-sm">
-              Playlist by{" "}
-              <span className="text-white font-bold">
+            <p className="text-sm text-gray-200 mt-2 whitespace-nowrap overflow-hidden text-ellipsis">
+              <span className="text-white font-semibold">
                 {playlist.userId?.username || "Unknown"}
               </span>
+              {" • "}
+              {createdDate}
+              {" • "}
+              {totalSongs} songs, {formattedDuration}
             </p>
           </div>
         </div>
@@ -228,8 +247,8 @@ const Playlist = () => {
       </div>
       {showRenameModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-[320px] bg-[#242424] rounded-lg shadow-lg p-5">
-            <h2 className="text-white text-base font-semibold mb-4">
+          <div className="w-[440px] h-[240px] bg-[#242424] rounded-lg shadow-lg p-9">
+            <h2 className="text-white text-2xl font-semibold mb-4">
               Rename Playlist
             </h2>
             <input
@@ -239,15 +258,15 @@ const Playlist = () => {
               placeholder="New playlist name"
               className="w-full p-2 mb-4 text-white bg-[#121212] border border-gray-700 rounded-sm focus:outline-none"
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-10 pt-8">
               <button
-                className="text-sm text-gray-400 hover:text-white transition"
+                className="text-md text-gray-400 hover:text-white font-semibold transition"
                 onClick={() => setShowRenameModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="text-sm text-black bg-green-500 hover:bg-green-600 transition px-4 py-1 rounded-sm font-semibold"
+                className="text-md text-black bg-green-600 hover:bg-green-500 hover:scale-110 transition px-6 py-3 rounded-full font-semibold"
                 onClick={() => {
                   fetch(`http://localhost:5001/api/playlists/${playlist._id}`, {
                     method: "PUT",
@@ -260,7 +279,6 @@ const Playlist = () => {
                     .then((res) => res.json())
                     .then((data) => {
                       if (data.success) {
-                        // ✅ Refresh local and global state
                         setShowRenameModal(false);
                         return fetch(
                           `http://localhost:5001/api/playlists/${playlist._id}`
@@ -288,23 +306,22 @@ const Playlist = () => {
       )}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-[320px] bg-[#242424] rounded-lg shadow-lg p-5 text-center">
-            <h2 className="text-white text-lg font-bold mb-4">
-              Delete Playlist
+          <div className="w-[440px] h-[240px] bg-[#242424] rounded-lg shadow-lg p-9 text-center">
+            <h2 className="text-white text-2xl font-bold mb-4 text-start">
+              Delete from Your Library?
             </h2>
-            <p className="text-sm text-gray-300 mb-4">
-              Are you sure you want to delete this playlist? This action can't
-              be undone.
+            <p className="text-sm text-gray-300 mb-4 text-start">
+              Are you sure you want to delete this playlist?
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-end gap-10 pt-10">
               <button
-                className="text-sm text-gray-400 hover:text-white transition"
+                className="text-md text-gray-400 hover:text-white transition"
                 onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="text-sm text-black bg-red-500 hover:bg-red-600 transition px-4 py-1 rounded-sm font-semibold"
+                className="text-md text-black bg-red-600 hover:bg-red-500 hover:scale-110 transition px-6 py-3 rounded-full font-semibold"
                 onClick={async () => {
                   try {
                     const res = await fetch(

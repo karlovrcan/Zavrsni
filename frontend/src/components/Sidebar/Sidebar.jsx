@@ -174,8 +174,8 @@ const Sidebar = () => {
 
           {showInput && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-              <div className="w-[320px] bg-[#242424] rounded-lg shadow-lg p-5">
-                <h2 className="text-white text-base font-semibold mb-4">
+              <div className="w-[440px] h-[240px] bg-[#242424] rounded-lg shadow-lg p-8">
+                <h2 className="text-white text-2xl font-semibold mb-6">
                   Create Playlist
                 </h2>
                 <input
@@ -183,11 +183,11 @@ const Sidebar = () => {
                   value={playlistName}
                   onChange={(e) => setPlaylistName(e.target.value)}
                   placeholder="Playlist Name"
-                  className="w-full p-2 mb-4 text-white bg-[#121212] border border-gray-700 rounded-sm focus:outline-none"
+                  className=" w-full p-3 mb-6 text-white bg-[#121212] border border-gray-700 rounded-sm focus:outline-none"
                 />
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-6 py-3">
                   <button
-                    className="text-sm text-gray-400 hover:text-white transition"
+                    className="text-md font-semibold text-gray-400 hover:text-white transition"
                     onClick={() => {
                       setShowInput(false);
                       setPlaylistName("");
@@ -197,7 +197,7 @@ const Sidebar = () => {
                   </button>
 
                   <button
-                    className="text-sm text-black bg-green-500 hover:bg-green-600 transition px-4 py-1 rounded-sm font-semibold"
+                    className="text-md font-semibold text-black bg-green-500 hover:bg-green-400 hover:scale-110 transition px-3 py-2 rounded-full font-semibold"
                     onClick={handleCreatePlaylist}
                   >
                     Create
@@ -238,13 +238,9 @@ const Sidebar = () => {
               </div>
             ) : (
               <>
-                {/* Spotify Playlists */}
                 {["all", "playlists"].includes(libraryFilter) &&
                   spotifyPlaylists.length > 0 && (
                     <>
-                      <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                        Playlists
-                      </div>
                       {spotifyPlaylists.map((pl) => (
                         <div
                           key={pl._id}
@@ -271,7 +267,6 @@ const Sidebar = () => {
                     </>
                   )}
 
-                {/* Local Playlists */}
                 {["all", "playlists"].includes(libraryFilter) &&
                   playlists.length > 0 && (
                     <>
@@ -310,13 +305,9 @@ const Sidebar = () => {
                     </>
                   )}
 
-                {/* Albums */}
                 {["all", "albums"].includes(libraryFilter) &&
                   albums.length > 0 && (
                     <>
-                      <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                        Albums
-                      </div>
                       {albums.map((album) => (
                         <div
                           key={album._id}
@@ -344,13 +335,9 @@ const Sidebar = () => {
                     </>
                   )}
 
-                {/* Artists */}
                 {["all", "artists"].includes(libraryFilter) &&
                   artists.length > 0 && (
                     <>
-                      <div className="text-gray-400 text-sm mt-4 ml-2 uppercase tracking-wider">
-                        Artists
-                      </div>
                       {artists.map((artist) => (
                         <div
                           key={artist.id}

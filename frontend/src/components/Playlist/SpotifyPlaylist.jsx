@@ -281,6 +281,17 @@ const SpotifyPlaylist = () => {
     formattedTracks.some((track) => track.uri === currentSong?.uri) &&
     isPlaying;
 
+  const totalSongs = formattedTracks.length;
+  const totalDurationMs = formattedTracks.reduce(
+    (acc, song) => acc + song.duration_ms,
+    0
+  );
+  const minutes = Math.floor(totalDurationMs / 60000);
+  const seconds = Math.floor((totalDurationMs % 60000) / 1000);
+  const formattedDuration = `${minutes} min ${seconds
+    .toString()
+    .padStart(2, "0")} sec`;
+
   return (
     <>
       <Layout>
@@ -314,17 +325,19 @@ const SpotifyPlaylist = () => {
                   />
                 </div>
                 <div className="w-3/4 flex flex-col justify-end pl-6 overflow-hidden">
+                  <h3 className="text-sm pb-2">Public Playlist</h3>
                   <h1
                     className="text-white font-extrabold w-full break-words text-[clamp(2rem,5vw,1.5rem)] leading-tight"
                     title={playlist?.name}
                   >
                     {playlist?.name}
                   </h1>
-                  <p className="text-gray-300 text-sm mt-2 font-sm">
-                    Playlist by{" "}
-                    <span className="text-white font-bold">
+                  <p className="text-sm text-gray-200 mt-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="text-white font-semibold">
                       {playlist?.owner?.display_name || "Unknown"}
                     </span>
+                    {" • "}
+                    {totalSongs} songs, {formattedDuration}
                   </p>
                 </div>
               </div>
