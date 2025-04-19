@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Layout from "../../Layout/Layout";
 import BrowsePage from "../Browse/Browse";
 import Card from "../Card/Card";
 import MiniCard from "../MiniCard/MiniCard";
 import SingularCard from "../SingularCard/SingularCard";
+import ArtistCard from "../ArtistCard/ArtistCard";
+import GuestModalPortal from "../GuestModal/GuestModalPortal";
 import { useAudio } from "../../states/AudioProvider";
 import { IoTimeOutline } from "react-icons/io5";
-import GuestModalPortal from "../GuestModal/GuestModalPortal";
-import { useNavigate } from "react-router-dom";
-import ArtistCard from "../ArtistCard/ArtistCard";
 
 export default function Search({
   songs = [],
@@ -18,21 +17,22 @@ export default function Search({
   albums = [],
   playlists = [],
 }) {
-  const [showGuestModal, setShowGuestModal] = useState(false);
-  const { isAuthenticated, user } = useSelector((state) => state.account);
-  const isGuest = !isAuthenticated || user?.role === "guest";
-  const accessToken = useSelector((state) => state.spotify.accessToken);
-  const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialQuery = queryParams.get("query") || "";
+  const source = queryParams.get("source");
+  const isFromBrowse = source === "browse";
 
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [activeFilter, setActiveFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
-  const [activeFilter, setActiveFilter] = useState("all");
-
-  const [genreSongs, setGenreSongs] = useState([]);
-  const [genrePlaylists, setGenrePlaylists] = useState([]);
-  const [genreAlbums, setGenreAlbums] = useState([]);
-  const [genreArtists, setGenreArtists] = useState([]);
+  const { isAuthenticated, user } = useSelector((state) => state.account);
+  const accessToken = useSelector((state) => state.spotify.accessToken);
+  const isGuest = !isAuthenticated || user?.role === "guest";
+  const navigate = useNavigate();
 
   const {
     loadQueue,
@@ -46,222 +46,27 @@ export default function Search({
     setCurrentPlaylistId,
   } = useAudio();
 
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const searchQuery = queryParams.get("query") || "";
-  const queryTokens = searchQuery
+  const queryTokens = decodeURIComponent(searchQuery)
     .trim()
     .toLowerCase()
-    .split(/\s+/)
+    .split(/[+,\s]+/)
     .filter(Boolean);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const newQuery = queryParams.get("query") || "";
+    setSearchQuery(newQuery);
+  }, [location.search]);
 
   useEffect(() => {
     setIsLoading(true);
     setShowResults(false);
-
     const delay = setTimeout(() => {
       setIsLoading(false);
       setShowResults(true);
     }, 800);
-
     return () => clearTimeout(delay);
   }, [searchQuery]);
-
-  useEffect(() => {
-    const fetchGenres = async () => {
-      if (activeFilter === "genres" && searchQuery.trim() !== "") {
-        try {
-          const res = await fetch(
-            `/api/search?type=genre&query=${encodeURIComponent(searchQuery)}`
-          );
-          const data = await res.json();
-          if (data.success) {
-            // Store the results in local state
-            setGenreSongs(data.songs || []);
-            setGenrePlaylists(data.playlists || []);
-            setGenreAlbums(data.albums || []);
-            setGenreArtists(data.artists || []);
-          } else {
-            setGenreSongs([]);
-            setGenrePlaylists([]);
-            setGenreAlbums([]);
-            setGenreArtists([]);
-          }
-        } catch (err) {
-          console.error("Error fetching genre search:", err);
-          setGenreSongs([]);
-          setGenrePlaylists([]);
-          setGenreAlbums([]);
-          setGenreArtists([]);
-        }
-      } else {
-        setGenreSongs([]);
-        setGenrePlaylists([]);
-        setGenreAlbums([]);
-        setGenreArtists([]);
-      }
-    };
-
-    fetchGenres();
-  }, [activeFilter, searchQuery]);
-
-  const handlePlaySpotifyPlaylist = async (playlistMeta) => {
-    if (currentPlaylistId === playlistMeta.id && isPlaying) {
-      togglePlayPause();
-      return;
-    }
-
-    if (currentPlaylistId === playlistMeta.id && !isPlaying) {
-      togglePlayPause();
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        `https://api.spotify.com/v1/playlists/${playlistMeta.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      const data = await res.json();
-      const tracks =
-        data.tracks?.items
-          ?.map(({ track }) => {
-            if (!track || !track.uri) return null;
-            return {
-              uri: track.uri,
-              name: track.name,
-              artists: track.artists,
-              album: track.album?.name || "Unknown Album",
-              albumId: track.album?.id || "",
-              albumCover: track.album?.images?.[0]?.url || "",
-              duration_ms: track.duration_ms,
-            };
-          })
-          .filter(Boolean) || [];
-
-      if (tracks.length === 0) return;
-
-      loadQueue(tracks, playlistMeta.id);
-      setCurrentPlaylistId(playlistMeta.id);
-      setSongIndex(0);
-      playPauseSong(tracks[0]);
-    } catch (err) {
-      console.error("Failed to fetch and play playlist:", err);
-    }
-  };
-
-  const handlePlayArtist = async (artist) => {
-    if (!artist?.id || !accessToken) return;
-
-    if (currentPlaylistId === artist.id && isPlaying) {
-      togglePlayPause();
-      return;
-    }
-
-    if (currentPlaylistId === artist.id && !isPlaying) {
-      togglePlayPause();
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        `https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=US`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-
-      const data = await res.json();
-      const topTracks =
-        data.tracks?.map((track) => ({
-          uri: track.uri,
-          name: track.name,
-          artists: track.artists,
-          album: track.album?.name || "Unknown Album",
-          albumId: track.album?.id || "",
-          albumCover: track.album?.images?.[0]?.url || "",
-          duration_ms: track.duration_ms,
-        })) || [];
-
-      if (topTracks.length === 0) return;
-
-      loadQueue(topTracks, artist.id);
-      setCurrentPlaylistId(artist.id);
-      setSongIndex(0);
-      playPauseSong(topTracks[0]);
-    } catch (err) {
-      console.error("❌ Failed to play artist:", err);
-    }
-  };
-
-  const handlePlayAlbum = async (album) => {
-    if (!album?.id || !accessToken) return;
-
-    if (currentPlaylistId === album.id && isPlaying) {
-      togglePlayPause();
-      return;
-    }
-
-    if (currentPlaylistId === album.id && !isPlaying) {
-      togglePlayPause();
-      return;
-    }
-
-    try {
-      const res = await fetch(`https://api.spotify.com/v1/albums/${album.id}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      const data = await res.json();
-      const tracks =
-        data.tracks?.items?.map((track) => ({
-          uri: track.uri,
-          name: track.name,
-          artists: track.artists,
-          album: data.name || "Unknown Album",
-          albumId: data.id,
-          albumCover: data.images?.[0]?.url || "",
-          duration_ms: track.duration_ms,
-        })) || [];
-
-      if (tracks.length === 0) return;
-
-      loadQueue(tracks, album.id);
-      setCurrentPlaylistId(album.id);
-      setSongIndex(0);
-      playPauseSong(tracks[0]);
-    } catch (err) {
-      console.error("❌ Failed to play album:", err);
-    }
-  };
-
-  const validPlaylists = playlists.filter(
-    (p) => p && p.id && p.name && p.images?.length > 0
-  );
-  const firstFivePlaylists = validPlaylists.slice(0, 5);
-
-  const handleTrackClick = (track, index) => {
-    if (!songs || !songs.length) return;
-    loadQueue(
-      songs.map((t) => ({
-        uri: t.uri,
-        name: t.name,
-        artists: t.artists,
-        album: t.album?.name || "Unknown Album",
-        albumCover: t.album?.images?.[0]?.url || "",
-        duration_ms: t.duration_ms,
-      })),
-      "search-results"
-    );
-    setSongIndex(index);
-    playPauseSong(track);
-  };
 
   const tokenizedMatch = (text, tokens) => {
     if (!text) return false;
@@ -269,51 +74,147 @@ export default function Search({
     return tokens.some((token) => lower.includes(token));
   };
 
-  const songMatchesQuery = (song, tokens) => {
-    return (
-      tokenizedMatch(song.name, tokens) ||
-      song.artists?.some((a) => tokenizedMatch(a.name, tokens)) ||
-      tokenizedMatch(song.album?.name, tokens)
-    );
-  };
+  const songMatchesQuery = (song) =>
+    tokenizedMatch(song.name, queryTokens) ||
+    song.artists?.some((a) => tokenizedMatch(a.name, queryTokens)) ||
+    tokenizedMatch(song.album?.name, queryTokens);
 
-  const artistMatchesQuery = (artist, tokens) => {
-    return tokenizedMatch(artist.name, tokens);
-  };
+  const artistMatchesQuery = (artist) =>
+    tokenizedMatch(artist.name, queryTokens);
 
-  const albumMatchesQuery = (album, tokens) => {
-    return (
-      tokenizedMatch(album.name, tokens) ||
-      album.artists?.some((a) => tokenizedMatch(a.name, tokens))
-    );
-  };
+  const albumMatchesQuery = (album) =>
+    tokenizedMatch(album.name, queryTokens) ||
+    album.artists?.some((a) => tokenizedMatch(a.name, queryTokens));
 
-  const playlistMatchesQuery = (playlist, tokens) => {
-    return (
-      tokenizedMatch(playlist.name, tokens) ||
-      tokenizedMatch(playlist.owner?.display_name, tokens)
-    );
-  };
+  const playlistMatchesQuery = (playlist) =>
+    tokenizedMatch(playlist.name, queryTokens) ||
+    tokenizedMatch(playlist.owner?.display_name, queryTokens);
 
-  const matchedSongs = songs.filter(
-    (song) => song && songMatchesQuery(song, queryTokens)
-  );
-
+  const matchedSongs = songs.filter((song) => song && songMatchesQuery(song));
   const matchedArtists = artists.filter(
-    (artist) => artist && artistMatchesQuery(artist, queryTokens)
+    (artist) => artist && artistMatchesQuery(artist)
   );
-
   const matchedAlbums = albums.filter(
-    (album) => album && albumMatchesQuery(album, queryTokens)
+    (album) => album && albumMatchesQuery(album)
+  );
+  const matchedPlaylists = playlists.filter(
+    (playlist) => playlist && playlistMatchesQuery(playlist)
   );
 
-  const matchedPlaylists = playlists.filter(
-    (playlist) => playlist && playlistMatchesQuery(playlist, queryTokens)
-  );
+  const handleTrackClick = (track, index) => {
+    if (!songs.length) return;
+    const queue = songs.map((t) => ({
+      uri: t.uri,
+      name: t.name,
+      artists: t.artists,
+      album: t.album?.name || "Unknown Album",
+      albumCover: t.album?.images?.[0]?.url || "",
+      duration_ms: t.duration_ms,
+    }));
+    loadQueue(queue, "search-results");
+    setSongIndex(index);
+    playPauseSong(track);
+  };
+
+  const handlePlaySpotifyPlaylist = async (playlistMeta) => {
+    if (!accessToken) return;
+    if (currentPlaylistId === playlistMeta.id) return togglePlayPause();
+
+    try {
+      const res = await fetch(
+        `https://api.spotify.com/v1/playlists/${playlistMeta.id}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      const data = await res.json();
+      const tracks =
+        data.tracks?.items
+          ?.map(({ track }) =>
+            track?.uri
+              ? {
+                  uri: track.uri,
+                  name: track.name,
+                  artists: track.artists,
+                  album: track.album?.name,
+                  albumId: track.album?.id,
+                  albumCover: track.album?.images?.[0]?.url,
+                  duration_ms: track.duration_ms,
+                }
+              : null
+          )
+          .filter(Boolean) || [];
+
+      if (tracks.length) {
+        loadQueue(tracks, playlistMeta.id);
+        setCurrentPlaylistId(playlistMeta.id);
+        setSongIndex(0);
+        playPauseSong(tracks[0]);
+      }
+    } catch (err) {
+      console.error("Failed to play playlist:", err);
+    }
+  };
+
+  const handlePlayAlbum = async (album) => {
+    if (!album?.id || !accessToken) return;
+    if (currentPlaylistId === album.id) return togglePlayPause();
+
+    try {
+      const res = await fetch(`https://api.spotify.com/v1/albums/${album.id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      const tracks = data.tracks?.items.map((track) => ({
+        uri: track.uri,
+        name: track.name,
+        artists: track.artists,
+        album: data.name,
+        albumId: data.id,
+        albumCover: data.images?.[0]?.url,
+        duration_ms: track.duration_ms,
+      }));
+
+      loadQueue(tracks, album.id);
+      setCurrentPlaylistId(album.id);
+      setSongIndex(0);
+      playPauseSong(tracks[0]);
+    } catch (err) {
+      console.error("Failed to play album:", err);
+    }
+  };
+
+  const handlePlayArtist = async (artist) => {
+    if (!artist?.id || !accessToken) return;
+    if (currentPlaylistId === artist.id) return togglePlayPause();
+
+    try {
+      const res = await fetch(
+        `https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=US`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const data = await res.json();
+      const topTracks = data.tracks.map((track) => ({
+        uri: track.uri,
+        name: track.name,
+        artists: track.artists,
+        album: track.album?.name,
+        albumId: track.album?.id,
+        albumCover: track.album?.images?.[0]?.url,
+        duration_ms: track.duration_ms,
+      }));
+
+      loadQueue(topTracks, artist.id);
+      setCurrentPlaylistId(artist.id);
+      setSongIndex(0);
+      playPauseSong(topTracks[0]);
+    } catch (err) {
+      console.error("Failed to play artist:", err);
+    }
+  };
 
   return (
     <>
-      {" "}
       <Layout>
         <div
           className={`transition-opacity duration-500 ${
@@ -322,7 +223,7 @@ export default function Search({
         >
           <div className="px-2 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar">
             {searchQuery === "" ? (
-              <BrowsePage />
+              <BrowsePage setSearchQuery={setSearchQuery} />
             ) : isLoading ? (
               <div className="flex justify-center items-center h-full">
                 <div className="flex flex-col items-center gap-4">
@@ -332,61 +233,29 @@ export default function Search({
               </div>
             ) : (
               <>
-                <div className="flex gap-4 px-6 py-3 fixed top-[64px] left-[440px] right-[20px] z-40 bg-[#121212]  justify-start text-sm">
-                  <button
-                    className={`${
-                      activeFilter === "all"
-                        ? "bg-white text-black"
-                        : "tertiary_bg text-white"
-                    } px-4 py-2 rounded-full transition hover:scale-110`}
-                    onClick={() => setActiveFilter("all")}
-                  >
-                    All
-                  </button>
-                  <button
-                    className={`${
-                      activeFilter === "songs"
-                        ? "bg-white text-black"
-                        : "tertiary_bg text-white"
-                    } px-4 py-2 rounded-full transition hover:scale-110`}
-                    onClick={() => setActiveFilter("songs")}
-                  >
-                    Songs
-                  </button>
-                  <button
-                    className={`${
-                      activeFilter === "artists"
-                        ? "bg-white text-black"
-                        : "tertiary_bg text-white"
-                    } px-4 py-2 rounded-full transition hover:scale-110`}
-                    onClick={() => setActiveFilter("artists")}
-                  >
-                    Artists
-                  </button>
-                  <button
-                    className={`${
-                      activeFilter === "playlists"
-                        ? "bg-white text-black"
-                        : "tertiary_bg text-white"
-                    } px-4 py-2 rounded-full transition hover:scale-110`}
-                    onClick={() => setActiveFilter("playlists")}
-                  >
-                    Playlists
-                  </button>
-                  <button
-                    className={`${
-                      activeFilter === "albums"
-                        ? "bg-white text-black"
-                        : "tertiary_bg text-white"
-                    } px-4 py-2 rounded-full transition hover:scale-110 `}
-                    onClick={() => setActiveFilter("albums")}
-                  >
-                    Albums
-                  </button>
-                </div>
+                {!isFromBrowse && (
+                  <div className="flex gap-4 px-6 py-3 fixed top-[64px] left-[440px] right-[20px] z-40 bg-[#121212]  justify-start text-sm">
+                    {["all", "songs", "artists", "playlists", "albums"].map(
+                      (type) => (
+                        <button
+                          key={type}
+                          className={`${
+                            activeFilter === type
+                              ? "bg-white text-black"
+                              : "tertiary_bg text-white"
+                          } px-4 py-2 rounded-full transition hover:scale-110`}
+                          onClick={() => setActiveFilter(type)}
+                        >
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
 
                 <div className="px-3 pt-20 pb-6 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar">
-                  {["all", "songs"].includes(activeFilter) &&
+                  {!isFromBrowse &&
+                    ["all", "songs"].includes(activeFilter) &&
                     songs.length > 0 && (
                       <>
                         {activeFilter === "all" && (
@@ -470,51 +339,11 @@ export default function Search({
                             </div>
                           </>
                         )}
-
-                        {activeFilter === "songs" && (
-                          <div>
-                            <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
-                              <p className="font-semibold w-1/3 text-center pr-[40px]">
-                                Title / Author
-                              </p>
-                              <p className="font-semibold w-1/3 text-center ml-[75px]">
-                                Album
-                              </p>
-                              <div className="w-1/3 flex justify-end pr-[30px]">
-                                <IoTimeOutline className="text-xl " />
-                              </div>
-                            </div>
-                            <div className="w-full h-[2px] bg-white/10"></div>
-                            <div className="flex flex-col px-6 pt-3">
-                              {matchedSongs.map((track, index) => (
-                                <MiniCard
-                                  key={track.uri || track.id}
-                                  song={{
-                                    id: track.id,
-                                    uri: track.uri,
-                                    name: track.name,
-                                    artists: track.artists,
-                                    album: track.album?.name || "Unknown Album",
-                                    albumCover:
-                                      track.album?.images?.[0]?.url || "",
-                                    duration_ms: track.duration_ms,
-                                  }}
-                                  onClick={() => {
-                                    if (isGuest) {
-                                      setShowGuestModal(true);
-                                      return;
-                                    }
-                                    handleTrackClick(track, index);
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </>
                     )}
 
-                  {["all", "artists"].includes(activeFilter) &&
+                  {!isFromBrowse &&
+                    ["all", "artists"].includes(activeFilter) &&
                     artists.length > 0 && (
                       <>
                         <h2 className="text-2xl font-bold mt-3 mb-2 px-6">
@@ -553,7 +382,6 @@ export default function Search({
                       </>
                     )}
 
-                  {/* 3) PLAYLISTS SECTION */}
                   {["all", "playlists"].includes(activeFilter) &&
                     playlists.length > 0 && (
                       <>
@@ -561,7 +389,7 @@ export default function Search({
                           Playlists
                         </h2>
                         <div className="grid grid-cols-5 px-3">
-                          {(activeFilter === "all"
+                          {(activeFilter === "all" && !isFromBrowse
                             ? matchedPlaylists.slice(0, 5)
                             : matchedPlaylists
                           )
@@ -596,9 +424,9 @@ export default function Search({
                       </>
                     )}
 
-                  {/* 4) ALBUMS SECTION */}
                   {["all", "albums"].includes(activeFilter) &&
-                    albums.length > 0 && (
+                    albums.length > 0 &&
+                    !isFromBrowse && (
                       <>
                         <h2 className="text-2xl font-bold mt-6 mb-2 px-6">
                           Albums

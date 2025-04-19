@@ -212,7 +212,7 @@ const Sidebar = () => {
                 <button
                   key={filter}
                   onClick={() => setLibraryFilter(filter)}
-                  className={`px-3 py-1 text-sm rounded-full font-medium transition-colors duration-200 ${
+                  className={`px-3 py-1 text-sm rounded-full font-base transition-colors duration-200 ${
                     libraryFilter === filter
                       ? "bg-white text-black"
                       : "bg-[#2a2a2a] text-white"
