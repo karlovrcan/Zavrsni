@@ -10,6 +10,7 @@ import { useAudio } from "../../states/AudioProvider";
 import { IoTimeOutline } from "react-icons/io5";
 import GuestModalPortal from "../GuestModal/GuestModalPortal";
 import { useNavigate } from "react-router-dom";
+import ArtistCard from "../ArtistCard/ArtistCard";
 
 export default function Search({
   songs = [],
@@ -23,20 +24,16 @@ export default function Search({
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const navigate = useNavigate();
 
-  // Shows/hides the loading spinner & fade-in animation
   const [isLoading, setIsLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
 
-  // Which filter is active? "all", "artists", "playlists", "albums", "genres", etc.
   const [activeFilter, setActiveFilter] = useState("all");
 
-  // Local “all” data is from props, but for "genres" we fetch from the server:
   const [genreSongs, setGenreSongs] = useState([]);
   const [genrePlaylists, setGenrePlaylists] = useState([]);
   const [genreAlbums, setGenreAlbums] = useState([]);
   const [genreArtists, setGenreArtists] = useState([]);
 
-  // Audio context for playing tracks
   const {
     loadQueue,
     activeQueue,
@@ -49,7 +46,6 @@ export default function Search({
     setCurrentPlaylistId,
   } = useAudio();
 
-  // Pull ?query= from the URL (e.g. /search?query=pop)
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
@@ -71,7 +67,6 @@ export default function Search({
     return () => clearTimeout(delay);
   }, [searchQuery]);
 
-  // Whenever user selects "genres" + there's a non-empty searchQuery, fetch from server
   useEffect(() => {
     const fetchGenres = async () => {
       if (activeFilter === "genres" && searchQuery.trim() !== "") {
@@ -87,7 +82,6 @@ export default function Search({
             setGenreAlbums(data.albums || []);
             setGenreArtists(data.artists || []);
           } else {
-            // If the server responded with success=false
             setGenreSongs([]);
             setGenrePlaylists([]);
             setGenreAlbums([]);
@@ -95,15 +89,12 @@ export default function Search({
           }
         } catch (err) {
           console.error("Error fetching genre search:", err);
-          // Clear out old data if there's an error
           setGenreSongs([]);
           setGenrePlaylists([]);
           setGenreAlbums([]);
           setGenreArtists([]);
         }
       } else {
-        // If user is NOT on "genres" or searchQuery is empty,
-        // reset the genre-based arrays
         setGenreSongs([]);
         setGenrePlaylists([]);
         setGenreAlbums([]);
@@ -526,17 +517,17 @@ export default function Search({
                   {["all", "artists"].includes(activeFilter) &&
                     artists.length > 0 && (
                       <>
-                        <h2 className="text-2xl font-bold mt-6 mb-2 px-6">
+                        <h2 className="text-2xl font-bold mt-3 mb-2 px-6">
                           Artists
                         </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-5 px-3">
+                        <div className="grid grid-cols-5 px-3">
                           {(activeFilter === "all"
                             ? matchedArtists.slice(0, 5)
                             : matchedArtists
                           )
                             .filter((artist) => artist && artist.id)
                             .map((artist) => (
-                              <Card
+                              <ArtistCard
                                 key={artist.id}
                                 type="artist"
                                 song={{
@@ -566,10 +557,10 @@ export default function Search({
                   {["all", "playlists"].includes(activeFilter) &&
                     playlists.length > 0 && (
                       <>
-                        <h2 className="text-2xl font-bold mt-6 mb-2 px-6">
+                        <h2 className="text-2xl font-bold mt-3 mb-2 px-6">
                           Playlists
                         </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-5 px-3">
+                        <div className="grid grid-cols-5 px-3">
                           {(activeFilter === "all"
                             ? matchedPlaylists.slice(0, 5)
                             : matchedPlaylists

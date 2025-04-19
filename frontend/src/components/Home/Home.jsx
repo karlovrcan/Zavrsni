@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Layout from "../../Layout/Layout";
 import VisualCard from "../VisualCard/VisualCard.jsx";
+import ArtistCard from "../ArtistCard/ArtistCard.jsx";
+import MiniCard from "../MiniCard/MiniCard.jsx";
 import { useGlobalContext } from "../../states/Content.jsx";
 import { useSelector } from "react-redux";
 import { useAudio } from "../../states/AudioProvider.jsx";
@@ -91,7 +93,6 @@ const Home = () => {
   return (
     <Layout>
       <div className="secondary_bg h-[calc(100vh-155px)] px-4 py-4 rounded-lg mr-3 overflow-y-auto custom-scrollbar">
-        {/* Recently Played */}
         {recentlyPlayed?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -107,53 +108,37 @@ const Home = () => {
                 Show all
               </Link>
             </div>
-            <div className="grid  grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mb-6">
-              {recentlyPlayed.slice(0, 6).map((song, idx) => (
-                <VisualCard
-                  key={`${song._id || song.uri}-${idx}`}
-                  title={song.name}
-                  image={song.albumCover}
-                  description={song.artists?.map((a) => a.name).join(", ")}
-                  link={`/album/${song.albumId || ""}`}
-                />
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div className="flex flex-col">
+                {recentlyPlayed.slice(0, 5).map((song, idx) => (
+                  <MiniCard
+                    key={`left-${song._id || song.uri}-${idx}`}
+                    song={song}
+                    hideAlbum={true}
+                    onClick={() => {
+                      // Optional: play logic
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Right column */}
+              <div className="flex flex-col">
+                {recentlyPlayed.slice(5, 10).map((song, idx) => (
+                  <MiniCard
+                    key={`right-${song._id || song.uri}-${idx}`}
+                    song={song}
+                    hideAlbum={true}
+                    onClick={() => {
+                      // Optional: play logic
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </>
         )}
 
-        {/* Editor’s Picks (local + Spotify) */}
-        {(featuredPlaylists.local.length > 0 ||
-          featuredPlaylists.spotify.length > 0) && (
-          <>
-            <div className="px-3 flex justify-between items-center mb-2">
-              <span className="font-bold text-2xl hover:underline">
-                Editor's Picks
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mb-6">
-              {featuredPlaylists.local.map((pl) => (
-                <VisualCard
-                  key={pl._id}
-                  title={pl.name}
-                  image={pl?.songs?.[0]?.albumCover || "/default_playlist.png"}
-                  description={`Playlist • ${pl.userId?.username || "You"}`}
-                  link={`/playlist/${pl._id}`}
-                />
-              ))}
-              {featuredPlaylists.spotify.map((pl) => (
-                <VisualCard
-                  key={pl.spotifyId}
-                  title={pl.name}
-                  image={pl.image || "/default_playlist.png"}
-                  description={`Spotify • ${pl.owner?.name || "Spotify"}`}
-                  link={`/spotify-playlist/${pl.spotifyId}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Followed Artists */}
         {followedArtists?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -164,19 +149,19 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mb-6">
               {followedArtists.map((artist, idx) => (
-                <VisualCard
+                <ArtistCard
                   key={artist.id}
-                  title={artist.name}
-                  image={artist.image || "/default_artist.png"}
-                  description="Artist"
-                  link={`/artist/${artist.id}`}
+                  song={{
+                    id: artist.id,
+                    name: artist.name,
+                    albumCover: artist.image || "/default_artist.png",
+                  }}
                 />
               ))}
             </div>
           </>
         )}
 
-        {/* Albums */}
         {albums?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -201,7 +186,6 @@ const Home = () => {
           </>
         )}
 
-        {/* Your Local Playlists */}
         {playlists?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -224,7 +208,6 @@ const Home = () => {
           </>
         )}
 
-        {/* Your Saved Spotify Playlists (database) */}
         {spotifyPlaylists?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -247,7 +230,6 @@ const Home = () => {
           </>
         )}
 
-        {/* Category Sections: Party, Pop, Rock */}
         {categoryPlaylists["Party"]?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -314,10 +296,6 @@ const Home = () => {
           </>
         )}
 
-        {/* Example of how to add more categories if you see them in console logs */}
-        {/* e.g. {categoryPlaylists["mood"]?.length > 0 && (...)} */}
-
-        {/* Enriched Artists */}
         {enrichedArtists?.length > 0 && (
           <>
             <div className="px-3 flex justify-between items-center mb-2">
@@ -328,12 +306,13 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mb-6">
               {enrichedArtists.slice(0, 12).map((artist) => (
-                <VisualCard
+                <ArtistCard
                   key={artist.id}
-                  title={artist.name}
-                  image={artist.image || "/default_artist.png"}
-                  description="Artist"
-                  link={`/artist/${artist.id}`}
+                  song={{
+                    id: artist.id,
+                    name: artist.name,
+                    albumCover: artist.image || "/default_artist.png",
+                  }}
                 />
               ))}
             </div>

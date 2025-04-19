@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
 import { useAudio } from "../../states/AudioProvider";
@@ -25,6 +25,19 @@ const Album = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const releaseYear = albumData?.release_date?.slice(0, 4);
+  const totalSongs = albumData?.tracks?.items?.length || 0;
+
+  const totalDurationMs = albumData?.tracks?.items?.reduce(
+    (acc, track) => acc + track.duration_ms,
+    0
+  );
+
+  const albumminutes = Math.floor(totalDurationMs / 60000);
+  const albumseconds = Math.floor((totalDurationMs % 60000) / 1000);
+  const formattedDuration = `${albumminutes} min ${albumseconds
+    .toString()
+    .padStart(2, "0")} sec`;
 
   const {
     setSongIndex,
@@ -274,26 +287,36 @@ const Album = () => {
                   />
                 </div>
 
-                <div className="w-3/4 flex items-end pl-6 overflow-hidden">
+                <div className="w-3/4 flex flex-col justify-end pl-6 overflow-hidden">
                   <h1
                     className="text-white font-extrabold w-full break-words text-[clamp(2.5rem,5vw,2rem)] leading-tight"
                     title={albumData?.name}
                   >
                     {albumData?.name || "Unnamed Album"}
                   </h1>
+
+                  <p className="text-sm text-gray-200 mt-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                    <Link
+                      to={`/artist/${albumData?.artists?.[0]?.id}`}
+                      className="hover:underline text-white font-semibold transition-colors"
+                    >
+                      {albumData?.artists?.[0]?.name}
+                    </Link>{" "}
+                    • {releaseYear} • {totalSongs} songs, {formattedDuration}
+                  </p>
                 </div>
               </div>
 
               <div className="w-full bg-black/30 pb-[75px]">
-                <div className="flex items-center p-4 gap-4 mb-6 mt-6">
+                <div className="flex items-center p-4 gap-4 ml-2 mb-6 mt-6">
                   <button
                     className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
                     onClick={handlePlayPauseClick}
                   >
                     {isAlbumPlaying ? (
-                      <IoIosPause className="text-5xl text-black" />
+                      <IoIosPause className="text-4xl text-black" />
                     ) : (
-                      <IoIosPlay className="text-5xl text-black pl-1" />
+                      <IoIosPlay className="text-4xl text-black pl-1" />
                     )}
                   </button>
 
@@ -326,7 +349,7 @@ const Album = () => {
                 </div>
                 <div className="w-full items-center justify-between h-[2px] bg-white/10"></div>
 
-                <div className="flex flex-col gap-2 p-4">
+                <div className="flex flex-col p-4">
                   {formattedTracks.map((track, index) => (
                     <MiniCard
                       key={track.uri || index}

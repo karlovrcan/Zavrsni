@@ -53,30 +53,31 @@ const SingularCard = ({
               {song.name}
             </p>
 
-            <p
-              className={
-                subtitleClassName ?? "text-sm text-gray-400 font-medium mt-1"
-              }
-            >
-              Song
-            </p>
-
-            <p
-              className={
-                artistClassName ?? "text-white font-medium text-sm mt-1"
-              }
-            >
-              {song.artists?.map((artist, index) => (
-                <Link
-                  to={`/artist/${artist.id}`}
-                  key={artist.id}
-                  className="hover:underline"
-                >
-                  {artist.name}
-                  {index < song.artists.length - 1 && ", "}
-                </Link>
-              ))}
-            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <p
+                className={
+                  subtitleClassName ?? "text-sm text-gray-400 font-medium mt-1"
+                }
+              >
+                Song •
+              </p>
+              <div
+                className={
+                  artistClassName ?? "text-white font-medium text-sm mt-1"
+                }
+              >
+                {song.artists?.map((artist, index) => (
+                  <Link
+                    to={`/artist/${artist.id}`}
+                    key={artist.id}
+                    className="hover:underline"
+                  >
+                    {artist.name}
+                    {index < song.artists.length - 1 && ", "}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
 
           <button

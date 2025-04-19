@@ -1,23 +1,28 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
-import { CiCirclePlus } from "react-icons/ci";
+import { useParams, useNavigate } from "react-router-dom";
 import { IoTimeOutline } from "react-icons/io5";
 import { IoIosPlay, IoIosPause } from "react-icons/io";
-import { BsCheckCircleFill } from "react-icons/bs";
+import { MdOutlineDeleteOutline } from "react-icons/md";
+import { FiEdit3 } from "react-icons/fi";
+import { SlOptions } from "react-icons/sl";
 import Layout from "../../Layout/Layout";
 import MiniCard from "../MiniCard/MiniCard";
-import { useAudio } from "../../states/AudioProvider";
 import fallbackImage from "../../assets/playlistCover.png";
+import { useAudio } from "../../states/AudioProvider";
 
 const Playlist = () => {
   const { token } = useSelector((state) => state.account);
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [playlist, setPlaylist] = useState(null);
   const [songs, setSongs] = useState([]);
   const [bgColor, setBgColor] = useState("#000000");
-  const [isSaved, setIsSaved] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
 
   const {
     playPauseSong,
@@ -32,28 +37,30 @@ const Playlist = () => {
 
   const scrollRef = useRef(null);
 
-  const fetchPlaylist = async () => {
-    try {
-      const response = await fetch(`http://localhost:5001/api/playlists/${id}`);
-      const data = await response.json();
-
-      if (
-        !data.success ||
-        !data.playlist ||
-        !Array.isArray(data.playlist.songs)
-      ) {
-        console.error("Invalid API response:", data);
-        return;
-      }
-
-      setPlaylist(data.playlist);
-      setSongs(data.playlist.songs);
-    } catch (error) {
-      console.error("Error fetching playlist:", error);
-    }
-  };
-
   useEffect(() => {
+    const fetchPlaylist = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5001/api/playlists/${id}`
+        );
+        const data = await response.json();
+
+        if (
+          !data.success ||
+          !data.playlist ||
+          !Array.isArray(data.playlist.songs)
+        ) {
+          console.error("Invalid API response:", data);
+          return;
+        }
+
+        setPlaylist(data.playlist);
+        setSongs(data.playlist.songs);
+      } catch (error) {
+        console.error("Error fetching playlist:", error);
+      }
+    };
+
     fetchPlaylist();
   }, [id]);
 
@@ -62,16 +69,13 @@ const Playlist = () => {
       const firstImg = playlist.songs[0].albumCover;
       if (firstImg) {
         import("node-vibrant/browser")
-          .then(({ Vibrant }) => {
-            if (!Vibrant?.from) throw new Error("Vibrant.from is missing");
-            return Vibrant.from(firstImg).getPalette();
-          })
+          .then(({ Vibrant }) => Vibrant.from(firstImg).getPalette())
           .then((palette) => {
             const chosenColor =
               palette?.Vibrant?.hex ||
               palette?.DarkVibrant?.hex ||
               palette?.Muted?.hex ||
-              "#282828"; // fallback
+              "#282828";
             setBgColor(chosenColor);
           })
           .catch((err) => console.error("Error extracting palette:", err));
@@ -79,33 +83,22 @@ const Playlist = () => {
     }
   }, [playlist]);
 
-  useEffect(() => {
-    window.refreshActivePlaylist = fetchPlaylist;
-    return () => {
-      window.refreshActivePlaylist = null;
-    };
-  }, [id]);
+  const playlistImage = playlist?.songs?.[0]?.albumCover || fallbackImage;
 
-  const deleteCustomPlaylist = async () => {
-    if (!playlist?._id) return;
-    try {
-      const res = await fetch(
-        `http://localhost:5001/api/playlists/${playlist._id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const data = await res.json();
-      if (data.success) {
-        setIsSaved(false);
-        window.addPlaylistToSidebar?.();
-      }
-    } catch (err) {
-      console.error("Failed to delete custom playlist:", err);
-    }
+  const isCurrentPlaylistPlaying =
+    currentPlaylistId === playlist?._id &&
+    songs.some((s) => s.uri === currentSong?.uri) &&
+    isPlaying;
+
+  const handleRenamePlaylist = () => {
+    setMenuOpen(false);
+    setNewPlaylistName(playlist?.name || "");
+    setShowRenameModal(true);
+  };
+
+  const handleDeletePlaylist = () => {
+    setMenuOpen(false);
+    setShowDeleteModal(true);
   };
 
   if (!playlist) {
@@ -115,15 +108,6 @@ const Playlist = () => {
       </Layout>
     );
   }
-
-  const playlistImage = playlist.songs.length
-    ? playlist.songs[0].albumCover
-    : fallbackImage;
-
-  const isCurrentPlaylistPlaying =
-    currentPlaylistId === playlist._id &&
-    songs.some((s) => s.uri === currentSong?.uri) &&
-    isPlaying;
 
   return (
     <Layout>
@@ -137,7 +121,7 @@ const Playlist = () => {
         <div className="flex p-4">
           <div className="w-1/4">
             <img
-              src={playlistImage || fallbackImage}
+              src={playlistImage}
               alt="Playlist Cover"
               className="w-[230px] h-[230px] rounded-lg object-cover drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)]"
             />
@@ -167,13 +151,10 @@ const Playlist = () => {
                   togglePlayPause();
                   return;
                 }
-
                 loadQueue(songs, playlist._id);
                 setCurrentPlaylistId(playlist._id);
                 setSongIndex(0);
-                if (songs[0]) {
-                  playPauseSong(songs[0]);
-                }
+                if (songs[0]) playPauseSong(songs[0]);
               }}
             >
               {isCurrentPlaylistPlaying ? (
@@ -184,13 +165,30 @@ const Playlist = () => {
             </button>
 
             <button
-              onClick={isSaved ? deleteCustomPlaylist : undefined}
-              className={`text-3xl font-bold p-1 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)] ${
-                isSaved ? "text-[#1db954]" : "text-white"
-              }`}
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-white hover:text-gray-300"
             >
-              {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
+              <SlOptions className="text-2xl" />
             </button>
+
+            {menuOpen && (
+              <div className="absolute left-[130px] w-auto bg-[#1a1a1a] border border-white/10 rounded shadow z-50">
+                <button
+                  onClick={handleRenamePlaylist}
+                  className="flex items-center justify-start gap-3 w-full px-4 py-2 text-sm font-medium text-white-400 hover:text-white hover:bg-gray-500/10 transition duration-200 "
+                >
+                  <FiEdit3 className="text-xl" />
+                  Rename
+                </button>
+                <button
+                  onClick={handleDeletePlaylist}
+                  className="flex items-center justify-start gap-3 w-full px-4 py-2 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/10 transition duration-200  border-t border-white/10"
+                >
+                  <MdOutlineDeleteOutline className="text-lg" />
+                  Delete Playlist
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
@@ -202,6 +200,7 @@ const Playlist = () => {
               <IoTimeOutline className="text-xl" />
             </div>
           </div>
+
           <div className="w-full h-[2px] bg-white/10"></div>
 
           <div className="flex flex-col px-4 pt-2">
@@ -227,6 +226,110 @@ const Playlist = () => {
           </div>
         </div>
       </div>
+      {showRenameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-[320px] bg-[#242424] rounded-lg shadow-lg p-5">
+            <h2 className="text-white text-base font-semibold mb-4">
+              Rename Playlist
+            </h2>
+            <input
+              type="text"
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              placeholder="New playlist name"
+              className="w-full p-2 mb-4 text-white bg-[#121212] border border-gray-700 rounded-sm focus:outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="text-sm text-gray-400 hover:text-white transition"
+                onClick={() => setShowRenameModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="text-sm text-black bg-green-500 hover:bg-green-600 transition px-4 py-1 rounded-sm font-semibold"
+                onClick={() => {
+                  fetch(`http://localhost:5001/api/playlists/${playlist._id}`, {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ name: newPlaylistName }),
+                  })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (data.success) {
+                        // ✅ Refresh local and global state
+                        setShowRenameModal(false);
+                        return fetch(
+                          `http://localhost:5001/api/playlists/${playlist._id}`
+                        );
+                      }
+                    })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (data.success) {
+                        setPlaylist(data.playlist);
+                        setSongs(data.playlist.songs);
+                        window.addPlaylistToSidebar?.();
+                      }
+                    })
+                    .catch((err) =>
+                      console.error("Failed to rename playlist:", err)
+                    );
+                }}
+              >
+                Rename
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-[320px] bg-[#242424] rounded-lg shadow-lg p-5 text-center">
+            <h2 className="text-white text-lg font-bold mb-4">
+              Delete Playlist
+            </h2>
+            <p className="text-sm text-gray-300 mb-4">
+              Are you sure you want to delete this playlist? This action can't
+              be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                className="text-sm text-gray-400 hover:text-white transition"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="text-sm text-black bg-red-500 hover:bg-red-600 transition px-4 py-1 rounded-sm font-semibold"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(
+                      `http://localhost:5001/api/playlists/${playlist._id}`,
+                      {
+                        method: "DELETE",
+                        headers: { Authorization: `Bearer ${token}` },
+                      }
+                    );
+                    const data = await res.json();
+                    if (data.success) {
+                      window.addPlaylistToSidebar?.();
+                      navigate("/");
+                    }
+                  } catch (err) {
+                    console.error("Failed to delete playlist:", err);
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

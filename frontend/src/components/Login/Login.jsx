@@ -61,6 +61,10 @@ const Login = () => {
       if (Data.success) {
         toast.success(Data.message, {
           position: "bottom-right",
+          style: {
+            marginBottom: "10px",
+            boxShadow: "10px",
+          },
         });
 
         sessionStorage.setItem("token", Data.token);

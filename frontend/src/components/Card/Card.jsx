@@ -51,61 +51,63 @@ const Card = ({
 
   return (
     <>
-      <div
-        className={`card grid-cols-1 sm:grid-cols-5 p-3 rounded-lg items-stretch relative mb-2 ${
-          isActivePlaylist ? "active" : ""
-        }`}
-        onClick={() => {
-          if (typeof onClickCard === "function") {
-            onClickCard();
-          } else {
-            navigate(`/spotify-playlist/${song.id}`);
-          }
-        }}
-      >
-        <div className="relative flex justify-center items-center">
-          <img
-            src={
-              song.albumCover ||
-              "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
+      <div className="w-full">
+        <div
+          className={`card p-3 rounded-lg items-stretch relative ${
+            isActivePlaylist ? "active" : ""
+          }`}
+          onClick={() => {
+            if (typeof onClickCard === "function") {
+              onClickCard();
+            } else {
+              navigate(`/spotify-playlist/${song.id}`);
             }
-            alt="Album Cover"
-            className={`w-full h-full object-cover ${
-              type === "artist" ? "rounded-full" : "rounded-lg"
-            }`}
-          />
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (typeof onPlayRequest === "function") {
-                onPlayRequest(song);
-              } else {
-                handlePlayPauseClick();
+          }}
+        >
+          <div className="relative flex justify-center items-center">
+            <img
+              src={
+                song.albumCover ||
+                "https://i.scdn.co/image/ab67706f00000002cc1c6b2c3df5dcbd56a50faa"
               }
-            }}
-            className={`play_btn ${isActivePlaylist ? "active" : ""}`}
-          >
-            {isActivePlaylist && isPlaying ? (
-              <IoIosPause className="text-white text-3xl" />
-            ) : (
-              <IoIosPlay className="text-white text-3xl" />
-            )}
-          </button>
-        </div>
-        <div className="mt-2 text-start">
-          <h3 className="text-white font-semibold line-clamp-2 text-sm mb-1">
-            {truncateText(song.name, 35)}
-          </h3>
+              alt="Album Cover"
+              className={`w-full h-full object-cover ${
+                type === "artist" ? "rounded-full" : "rounded-lg"
+              }`}
+            />
 
-          <p className="text-sm text-gray-400 mb-1">{formattedType}</p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof onPlayRequest === "function") {
+                  onPlayRequest(song);
+                } else {
+                  handlePlayPauseClick();
+                }
+              }}
+              className={`play_btn ${isActivePlaylist ? "active" : ""}`}
+            >
+              {isActivePlaylist && isPlaying ? (
+                <IoIosPause className="text-white text-3xl" />
+              ) : (
+                <IoIosPlay className="text-white text-3xl" />
+              )}
+            </button>
+          </div>
+          <div className="mt-2 text-start">
+            <h3 className="text-white font-semibold line-clamp-2 text-sm mb-1">
+              {truncateText(song.name, 35)}
+            </h3>
 
-          <p className="text-gray-400 text-sm">
-            {song.artists
-              .slice(0, 2)
-              .map((artist) => artist.name)
-              .join(", ") + (song.artists.length > 2 ? "..." : "")}
-          </p>
+            <p className="text-sm text-gray-400 mb-1">{formattedType}</p>
+
+            <p className="text-gray-400 text-sm">
+              {song.artists
+                .slice(0, 2)
+                .map((artist) => artist.name)
+                .join(", ") + (song.artists.length > 2 ? "..." : "")}
+            </p>
+          </div>
         </div>
       </div>
     </>

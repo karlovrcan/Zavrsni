@@ -8,7 +8,12 @@ const PlaylistSchema = new mongoose.Schema({
     {
       _id: { type: String, required: true },
       name: { type: String, required: true },
-      artists: [{ name: String }],
+      artists: [
+        {
+          name: String,
+          id: String,
+        },
+      ],
       uri: { type: String, required: true },
       album: { type: String, required: true },
       albumCover: { type: String, required: true },

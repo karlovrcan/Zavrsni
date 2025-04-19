@@ -1,7 +1,6 @@
 import express from "express";
 import Playlist from "../Models/Playlist.js";
 import verifyToken from "../middleware/auth.js";
-// import Song from "../Models/Songs.js"; // <-- Uncomment if you actually have a Song model
 import mongoose from "mongoose";
 
 const router = express.Router();
@@ -13,7 +12,7 @@ const router = express.Router();
  */
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, genre = "" } = req.body;
     if (!name) {
       return res.status(400).json({ message: "Playlist name is required." });
     }
@@ -119,23 +118,25 @@ router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
         .json({ success: false, message: "Playlist not found" });
     }
 
-    // Check if song is already in the playlist
     if (playlist.songs.some((s) => s._id === songId)) {
       return res
         .status(400)
         .json({ success: false, message: "Song already in playlist" });
     }
 
-    // Add the subdocument
     playlist.songs.push({
-      _id: songId, // storing your track ID as `_id`
+      _id: songId,
       name,
       uri,
-      artists,
+      artists: artists.map((a) => ({
+        name: a.name,
+        id: a.id,
+      })),
       album,
       albumCover,
       duration_ms,
     });
+
     await playlist.save();
 
     res.json({ success: true, message: "Song added", playlist });
@@ -145,9 +146,6 @@ router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
   }
 });
 
-/**
- * OPTIONAL: If you want to remove a song from a playlist (toggle)
- */
 router.post("/:playlistId/remove-song", verifyToken, async (req, res) => {
   try {
     const { playlistId } = req.params;
@@ -166,7 +164,6 @@ router.post("/:playlistId/remove-song", verifyToken, async (req, res) => {
         .json({ success: false, message: "Playlist not found" });
     }
 
-    // Filter out the matching subdoc
     playlist.songs = playlist.songs.filter((s) => s._id !== songId);
     await playlist.save();
 

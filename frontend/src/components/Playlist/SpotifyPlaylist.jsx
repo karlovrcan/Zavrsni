@@ -366,12 +366,8 @@ const SpotifyPlaylist = () => {
                   >
                     {isSaved ? <BsCheckCircleFill /> : <CiCirclePlus />}
                   </button>
-                  <button>
-                    <SlOptions className="text-3xl text-gray-200 ml-2 hover:text-white hover:scale-110" />
-                  </button>
                 </div>
 
-                {/* Table header */}
                 <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
                   <p className="font-semibold w-1/3 text-center pr-[70px]">
                     Title / Author
@@ -385,7 +381,6 @@ const SpotifyPlaylist = () => {
                 </div>
                 <div className="w-full h-[2px] bg-white/10"></div>
 
-                {/* Tracks list */}
                 <div className="flex flex-col px-5 pt-2">
                   {formattedTracks.map((track, index) => (
                     <MiniCard
