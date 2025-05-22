@@ -11,6 +11,7 @@ import adminRoutes from "./routes/admin.js";
 import followedArtistRoutes from "./routes/artist.js";
 import recentlyPlayedRoutes from "./routes/recentlyPlayed.js";
 import featuredRoutes from "./routes/featured.js";
+import recentlyPlayedCollectionRoutes from "./routes/recentlyPlayedCollection.js";
 
 dotenv.config();
 const app = express();
@@ -19,7 +20,7 @@ const PORT = process.env.PORT || 5001;
 connectDB();
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-app.use(express.json({ limit: "10mb" })); // or higher if needed
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use("/api/admin", adminRoutes);
@@ -29,6 +30,7 @@ app.use("/api/albums", albumRoutes);
 app.use("/api/spotify-playlist", spotifyPlaylistRoutes);
 app.use("/api/followed-artists", followedArtistRoutes);
 app.use("/api/recently-played", recentlyPlayedRoutes);
+app.use("/api/recently-played-collections", recentlyPlayedCollectionRoutes);
 app.use("/api/featured", featuredRoutes);
 
 app.use("/api/spotify", spotifyRoutes);

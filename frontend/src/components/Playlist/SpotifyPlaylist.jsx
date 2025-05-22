@@ -12,6 +12,7 @@ import { CiCirclePlus } from "react-icons/ci";
 import { IoTimeOutline } from "react-icons/io5";
 import { SlOptions } from "react-icons/sl";
 import GuestModal from "../GuestModal/GuestModal";
+import { Link } from "react-router-dom";
 
 const SpotifyPlaylist = () => {
   const { id } = useParams();
@@ -164,6 +165,7 @@ const SpotifyPlaylist = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(true);
+        window.refreshHomePage?.();
         toast("Playlist added to your profile.", {
           position: "bottom-center",
           hideProgressBar: true,
@@ -255,7 +257,7 @@ const SpotifyPlaylist = () => {
   const playlistImage =
     playlist?.images?.[0]?.url || formattedTracks[0]?.albumCover || "";
 
-  const handlePlayPauseClick = () => {
+  const handlePlayPauseClick = async () => {
     if (!formattedTracks.length || !playlist?.id) return;
 
     const isCurrent = currentPlaylistId === playlist.id;
@@ -272,9 +274,29 @@ const SpotifyPlaylist = () => {
       ? [...formattedTracks].sort(() => Math.random() - 0.5)
       : formattedTracks;
 
-    loadQueue(tracksToPlay, playlist.id);
+    loadQueue(tracksToPlay, playlist.id, "playlist");
     setSongIndex(0);
     playPauseSong(tracksToPlay[0]);
+    const res = await fetch(
+      "http://localhost:5001/api/recently-played-collections",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "spotify-playlist",
+          collectionId: playlist.id,
+          title: playlist.name,
+          image: playlist.images?.[0]?.url || "",
+          tracks: formattedTracks,
+        }),
+      }
+    );
+
+    const data = await res.json();
+    console.log("✅ Collection saved:", data);
   };
 
   const isPlaylistPlaying =
@@ -333,16 +355,25 @@ const SpotifyPlaylist = () => {
                     {playlist?.name}
                   </h1>
                   <p className="text-sm text-gray-200 mt-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                    <span className="text-white font-semibold">
-                      {playlist?.owner?.display_name || "Unknown"}
-                    </span>
+                    {playlist?.owner?.id ? (
+                      <Link
+                        to={`/user/${playlist.owner.id}`}
+                        className="text-white font-semibold hover:underline"
+                      >
+                        {playlist.owner.display_name || "Unknown"}
+                      </Link>
+                    ) : (
+                      <span className="text-white font-semibold">
+                        {playlist?.owner?.display_name || "Unknown"}
+                      </span>
+                    )}
                     {" • "}
                     {totalSongs} songs, {formattedDuration}
                   </p>
                 </div>
               </div>
 
-              <div className="w-full bg-black/50 pb-[100px]">
+              <div className="w-full bg-black/50 pb-[100px] rounded-r-md">
                 <div className="flex items-center p-4 pl-6 gap-4 mb-6 mt-6">
                   <button
                     className="bg-[#1db954] text-black font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
@@ -404,7 +435,7 @@ const SpotifyPlaylist = () => {
                           setShowGuestModal(true);
                           return;
                         }
-                        loadQueue(formattedTracks, playlist.id);
+                        loadQueue(formattedTracks, playlist.id, "playlist");
                         setSongIndex(index);
                         playPauseSong(track);
                       }}

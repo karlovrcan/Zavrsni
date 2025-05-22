@@ -55,13 +55,27 @@ export const AudioProvider = ({ children }) => {
       .padStart(2, "0")}`;
   };
 
-  const loadQueue = (newSongsArray, playlistId) => {
+  const loadQueue = (newSongsArray, playlistId, source = "") => {
     if (!Array.isArray(newSongsArray) || newSongsArray.length === 0) {
       console.warn("loadQueue was given an empty or invalid songs array.");
       return;
     }
-    setActiveQueue(newSongsArray);
-    setOriginalSongs(newSongsArray);
+
+    const enrichedSongs = newSongsArray.map((song) => ({
+      ...song,
+      source,
+      playlistId: playlistId !== "recently-played" ? playlistId : undefined,
+      spotifyId:
+        song.spotifyId ||
+        (source === "playlist" && playlistId?.length !== 24
+          ? playlistId
+          : null),
+      artistId: song.artists?.[0]?.id || "",
+      artistImage: song.artists?.[0]?.image || "",
+    }));
+
+    setActiveQueue(enrichedSongs);
+    setOriginalSongs(enrichedSongs);
     setSongIndex(0);
     setCurrentPlaylistId(playlistId || null);
     setIsShuffling(false);
@@ -322,23 +336,57 @@ export const AudioProvider = ({ children }) => {
       return;
     }
 
-    console.log("🎵 Starting track:", song.name, "| Track ID:", song.id);
+    console.log(
+      "🎵 Starting track:",
+      song.name,
+      "| Track ID:",
+      song.id || song._id
+    );
     setCurrentSong(song);
     setIsPlaying(true);
     setLocalCurrTime(0);
     setLocalProgress(0);
 
     if (song && token) {
+      if (song.artistId && Array.isArray(song.artists)) {
+        song.artists = song.artists.map((a, i) =>
+          i === 0 && !a.id ? { ...a, id: song.artistId } : a
+        );
+      }
+
+      const enriched = {
+        ...song,
+        source:
+          song.source ||
+          (currentPlaylistId && currentPlaylistId !== "recently-played"
+            ? "playlist"
+            : "album"),
+        playlistId:
+          song.playlistId ||
+          (currentPlaylistId !== "recently-played" ? currentPlaylistId : null),
+        artistId: song.artists?.[0]?.id || "",
+        artistImage: song.artists?.[0]?.image || "",
+        spotifyId: song.spotifyId || null,
+        artists: song.artists?.map((artist) => ({
+          name: artist.name,
+          id: artist.id || "",
+        })),
+      };
+
       fetch("http://localhost:5001/api/recently-played", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ song }),
-      }).catch((err) =>
-        console.error("Failed to save recently played song:", err)
-      );
+        body: JSON.stringify({ song: enriched }),
+      })
+        .then(() => {
+          window.refreshRecentlyPlayed?.(); // ✅ This triggers the update on the page
+        })
+        .catch((err) =>
+          console.error("Failed to save recently played song:", err)
+        );
     }
 
     try {
@@ -422,6 +470,21 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
+  const fetchRecentlyPlayed = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch("http://localhost:5001/api/recently-played", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRecentlyPlayed(data.recentlyPlayed);
+      }
+    } catch (err) {
+      console.error("Failed to fetch recently played:", err);
+    }
+  };
+
   const clearQueue = () => {
     setActiveQueue([]);
     setOriginalSongs([]);
@@ -468,6 +531,7 @@ export const AudioProvider = ({ children }) => {
         currentPlaylistId,
         setCurrentPlaylistId,
         clearQueue,
+        fetchRecentlyPlayed,
       }}
     >
       {children}

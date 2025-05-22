@@ -21,9 +21,9 @@ import SpotifyPlaylist from "./components/Playlist/SpotifyPlaylist";
 import ArtistProfile from "./components/Profile/ArtistProfile";
 import Album from "./components/Album/Album";
 import Profile from "./components/Profile/Profile";
+import ProfileView from "./components/ProfileView/ProfileView";
 import Admin from "./components/Admin/Admin";
 import { fetchSongs } from "./api/spotifyService";
-import SongRadio from "./components/SongRadio.jsx/SongRadio";
 import RecentlyPlayed from "./components/RecentlyPlayed/RecentlyPlayed";
 import CategoryPlaylist from "./components/CategoryPlaylist/CategoryPlaylist";
 import { ToastContainer } from "react-toastify";
@@ -112,9 +112,9 @@ const AppContent = () => {
         <Route path="/artist/:id" element={<ArtistProfile />} />
         <Route path="/album/:id" element={<Album />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/radio/:seedId" element={<SongRadio />} />
         <Route path="/recently-played" element={<RecentlyPlayed />} />
         <Route path="/category/:categoryId" element={<CategoryPlaylist />} />
+        <Route path="/user/:userId" element={<ProfileView />} />
       </Routes>
       <ToastContainer position="bottom-right" autoClose={3000} theme="dark" />
       {!hideNavAndSongBar && <Songbar />}

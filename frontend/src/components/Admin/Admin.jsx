@@ -14,15 +14,6 @@ const Admin = () => {
   const [selectedStat, setSelectedStat] = useState("local");
   const [showAllAlbums, setShowAllAlbums] = useState(false);
   const [showAllSongs, setShowAllSongs] = useState(false);
-  const browseCategories = [
-    "Lo-fi",
-    "Workout",
-    "Pop",
-    "Sleep",
-    "Rock",
-    "Jazz",
-    "Focus",
-  ];
 
   useEffect(() => {
     const checkAdmin = async () => {

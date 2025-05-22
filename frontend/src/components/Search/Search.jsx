@@ -9,7 +9,7 @@ import SingularCard from "../SingularCard/SingularCard";
 import ArtistCard from "../ArtistCard/ArtistCard";
 import GuestModalPortal from "../GuestModal/GuestModalPortal";
 import { useAudio } from "../../states/AudioProvider";
-import { IoTimeOutline } from "react-icons/io5";
+import { LOCAL_CATEGORIES } from "../Browse/Browse";
 
 export default function Search({
   songs = [],
@@ -33,6 +33,7 @@ export default function Search({
   const accessToken = useSelector((state) => state.spotify.accessToken);
   const isGuest = !isAuthenticated || user?.role === "guest";
   const navigate = useNavigate();
+  const token = useSelector((state) => state.account.token);
 
   const {
     loadQueue,
@@ -150,6 +151,20 @@ export default function Search({
         setCurrentPlaylistId(playlistMeta.id);
         setSongIndex(0);
         playPauseSong(tracks[0]);
+        await fetch("http://localhost:5001/api/recently-played-collections", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "spotify-playlist",
+            collectionId: playlistMeta.id,
+            title: playlistMeta.name,
+            image: playlistMeta.images?.[0]?.url || "",
+            tracks,
+          }),
+        });
       }
     } catch (err) {
       console.error("Failed to play playlist:", err);
@@ -179,6 +194,20 @@ export default function Search({
       setCurrentPlaylistId(album.id);
       setSongIndex(0);
       playPauseSong(tracks[0]);
+      await fetch("http://localhost:5001/api/recently-played-collections", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "album",
+          collectionId: album.id,
+          title: album.name,
+          image: album.images?.[0]?.url || "",
+          tracks,
+        }),
+      });
     } catch (err) {
       console.error("Failed to play album:", err);
     }
@@ -212,6 +241,10 @@ export default function Search({
       console.error("Failed to play artist:", err);
     }
   };
+
+  const categoryLabel = LOCAL_CATEGORIES.find((cat) =>
+    searchQuery.toLowerCase().includes(cat.id)
+  )?.label;
 
   return (
     <>
@@ -339,6 +372,41 @@ export default function Search({
                             </div>
                           </>
                         )}
+                        {activeFilter === "songs" &&
+                          matchedSongs.length > 0 && (
+                            <>
+                              <h2 className="text-2xl font-bold mt-3 mb-2 px-6">
+                                Songs
+                              </h2>
+                              <div className="flex flex-col px-6">
+                                {matchedSongs
+                                  .filter((track) => track && track.uri)
+                                  .map((track, index) => (
+                                    <MiniCard
+                                      key={track.uri}
+                                      song={{
+                                        id: track.id || track._id,
+                                        uri: track.uri,
+                                        name: track.name,
+                                        artists: track.artists,
+                                        album:
+                                          track.album?.name || "Unknown Album",
+                                        albumCover:
+                                          track.album?.images?.[0]?.url || "",
+                                        duration_ms: track.duration_ms,
+                                      }}
+                                      onClick={() => {
+                                        if (isGuest) {
+                                          setShowGuestModal(true);
+                                          return;
+                                        }
+                                        handleTrackClick(track, index);
+                                      }}
+                                    />
+                                  ))}
+                              </div>
+                            </>
+                          )}
                       </>
                     )}
 
@@ -386,8 +454,11 @@ export default function Search({
                     playlists.length > 0 && (
                       <>
                         <h2 className="text-2xl font-bold mt-3 mb-2 px-6">
-                          Playlists
+                          {isFromBrowse
+                            ? categoryLabel ?? "Category"
+                            : "Playlists"}
                         </h2>
+
                         <div className="grid grid-cols-5 px-3">
                           {(activeFilter === "all" && !isFromBrowse
                             ? matchedPlaylists.slice(0, 5)

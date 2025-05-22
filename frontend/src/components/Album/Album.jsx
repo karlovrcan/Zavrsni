@@ -149,6 +149,7 @@ const Album = () => {
       const data = await res.json();
       if (data.success) {
         setIsSaved(true);
+        window.refreshHomePage?.();
         toast("Album added to your profile.", {
           position: "bottom-center",
           hideProgressBar: true,
@@ -193,6 +194,7 @@ const Album = () => {
         const deleteData = await deleteRes.json();
         if (deleteData.success) {
           setIsSaved(false);
+          window.refreshHomePage?.();
           toast("Album removed from your profile.", {
             position: "bottom-center",
             hideProgressBar: true,
@@ -228,7 +230,7 @@ const Album = () => {
 
   const albumCoverImage = albumData?.images?.[0]?.url || "";
 
-  const handlePlayPauseClick = () => {
+  const handlePlayPauseClick = async () => {
     if (isGuest) {
       setShowGuestModal(true);
       return;
@@ -243,10 +245,26 @@ const Album = () => {
       return;
     }
 
-    loadQueue(formattedTracks, albumData.id);
+    loadQueue(formattedTracks, albumData.id, "album");
     setCurrentPlaylistId(albumData.id);
     setSongIndex(0);
     playPauseSong(formattedTracks[0]);
+    await fetch("http://localhost:5001/api/recently-played-collections", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "album",
+        collectionId: albumData.id,
+        title: albumData.name,
+        image: albumData.images?.[0]?.url || "",
+        tracks: formattedTracks,
+      }),
+    });
+
+    console.log("Saved collection", response);
   };
 
   const isAlbumPlaying =
@@ -359,7 +377,7 @@ const Album = () => {
                           setShowGuestModal(true);
                           return;
                         }
-                        loadQueue(formattedTracks, albumData.id);
+                        loadQueue(formattedTracks, albumData.id, "album");
                         setSongIndex(index);
                         playPauseSong(track);
                       }}

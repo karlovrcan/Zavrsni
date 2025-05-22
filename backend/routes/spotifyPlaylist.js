@@ -75,4 +75,24 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/:spotifyId", verifyToken, async (req, res) => {
+  try {
+    const playlist = await SpotifyPlaylist.findOne({
+      spotifyId: req.params.spotifyId,
+      addedBy: req.user._id,
+    });
+
+    if (!playlist) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Playlist not found" });
+    }
+
+    res.status(200).json({ success: true, playlist });
+  } catch (err) {
+    console.error("❌ Failed to fetch Spotify playlist:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 export default router;

@@ -12,28 +12,22 @@ export const AppProvider = ({ children }) => {
   const [pendingSongIdx, setPendingSongIdx] = useState(null);
   const [filteredSongs, setFilteredSongs] = useState([]);
 
-  // Feature sections
   const [followedArtists, setFollowedArtists] = useState([]);
   const [featuredPlaylists, setFeaturedPlaylists] = useState({
     local: [],
     spotify: [],
   });
-  const [categoryPlaylists, setCategoryPlaylists] = useState({}); // e.g. { Party: [...], Pop: [...], Rock: [...] }
+  const [categoryPlaylists, setCategoryPlaylists] = useState({});
 
-  // Standard local data
   const [playlists, setPlaylists] = useState([]);
   const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
   const [albums, setAlbums] = useState([]);
 
-  // Redux tokens
   const { token } = useSelector((state) => state.account);
   const accessToken = useSelector((state) => state.spotify.accessToken);
 
   const dispatch = useDispatch();
 
-  // ---------------------------
-  // 1) fetchUser from session
-  // ---------------------------
   const getUser = async () => {
     try {
       const storedToken = sessionStorage.getItem("spotify_access_token");
@@ -50,15 +44,17 @@ export const AppProvider = ({ children }) => {
 
       const data = await response.json();
       console.log("Spotify user data:", data);
+
+      // ✅ Refresh sidebar/home data
+      fetchPlaylists();
+      fetchSpotifyPlaylists();
+      fetchAlbums();
+      fetchFollowedArtists();
     } catch (error) {
       toast.error("Failed to fetch Spotify user data.");
     }
   };
 
-  // ---------------------------
-  // 2) Helper to see all categories
-  //    so we know valid category IDs
-  // ---------------------------
   const fetchAllSpotifyCategories = async () => {
     try {
       if (!accessToken) return;
@@ -75,10 +71,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 3) fetchCategoryPlaylists
-  //    e.g. "party", "pop", "rock"
-  // ---------------------------
   const fetchCategoryPlaylists = async (categoryId, label) => {
     if (!accessToken) return;
     try {
@@ -101,9 +93,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 4) Featured playlists (local + Spotify DB with featured=true)
-  // ---------------------------
   const fetchFeaturedPlaylists = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/featured");
@@ -116,9 +105,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 5) fetch local playlists
-  // ---------------------------
   const fetchPlaylists = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/playlists", {
@@ -131,9 +117,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 6) fetch user's SpotifyPlaylists (database)
-  // ---------------------------
   const fetchSpotifyPlaylists = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/spotify-playlist", {
@@ -146,9 +129,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 7) fetch user's local albums
-  // ---------------------------
   const fetchAlbums = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/albums", {
@@ -161,9 +141,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 8) fetch followed artists
-  // ---------------------------
   const fetchFollowedArtists = async () => {
     try {
       const res = await fetch("http://localhost:5001/api/followed-artists", {
@@ -178,9 +155,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ---------------------------
-  // 9) Misc playback resets
-  // ---------------------------
   const resetEverything = () => {
     setProgress(0);
     setCurrTime("00:00");
@@ -188,7 +162,6 @@ export const AppProvider = ({ children }) => {
   };
   const goToPreviousSong = () => {};
 
-  // Update song index
   useEffect(() => {
     if (pendingSongIdx !== null) {
       setSongIdx(pendingSongIdx);
@@ -196,9 +169,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [pendingSongIdx]);
 
-  // ---------------------------
-  // 10) On first load, fetch local data
-  // ---------------------------
   useEffect(() => {
     fetchPlaylists();
     fetchSpotifyPlaylists();
@@ -207,28 +177,18 @@ export const AppProvider = ({ children }) => {
     fetchFeaturedPlaylists();
   }, []);
 
-  // ---------------------------
-  // 11) Once we have a Spotify accessToken, fetch categories
-  // ---------------------------
   useEffect(() => {
     if (!accessToken) return;
 
-    // 1) See all categories to find valid IDs
     fetchAllSpotifyCategories();
-
-    // 2) Now fetch a few known categories
-    //    Replace these with category IDs you see from the above log.
     fetchCategoryPlaylists("party", "Party");
     fetchCategoryPlaylists("pop", "Pop");
     fetchCategoryPlaylists("rock", "Rock");
-    // If "decades" or "throwback" exist in your region, add them again here
   }, [accessToken]);
 
-  // Provide context
   return (
     <AppContext.Provider
       value={{
-        // Basic states
         currTime,
         setCurrTime,
         duration,

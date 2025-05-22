@@ -4,7 +4,6 @@ import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
-// GET recently played (limit 10)
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const items = await RecentlyPlayed.find({ userId: req.user.id })
@@ -16,11 +15,9 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// POST a recently played song
 router.post("/", authMiddleware, async (req, res) => {
   const { song } = req.body;
 
-  // Validate input
   if (!song || !song.uri) {
     return res.status(400).json({
       success: false,
@@ -29,18 +26,26 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 
   try {
-    // Remove any existing entry for this user+song to prevent duplicates
+    const normalizedSong = {
+      ...song,
+      album:
+        typeof song.album === "string"
+          ? song.album
+          : song.album?.name || "Unknown Album",
+      source: song.source || "",
+      playlistId: song.playlistId || null,
+    };
+
     await RecentlyPlayed.deleteOne({
       userId: req.user.id,
-      "song.uri": song.uri,
+      "song.uri": normalizedSong.uri,
     });
 
-    // Build and save a new "RecentlyPlayed" entry
-    // If 'song.genre' is provided, it'll be stored in the model
     const newEntry = new RecentlyPlayed({
       userId: req.user.id,
-      song,
+      song: normalizedSong,
     });
+
     await newEntry.save();
 
     res.json({

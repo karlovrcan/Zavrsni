@@ -170,10 +170,27 @@ const Playlist = () => {
                   togglePlayPause();
                   return;
                 }
-                loadQueue(songs, playlist._id);
+                loadQueue(songs, playlist._id, "playlist");
                 setCurrentPlaylistId(playlist._id);
                 setSongIndex(0);
                 if (songs[0]) playPauseSong(songs[0]);
+                fetch("http://localhost:5001/api/recently-played-collections", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    type: "playlist",
+                    collectionId: playlist._id,
+                    title: playlist.name,
+                    image:
+                      playlist.songs?.[0]?.albumCover ||
+                      "/default_playlist.png",
+                    tracks: songs,
+                  }),
+                });
+                console.log("Saved collection", response);
               }}
             >
               {isCurrentPlaylistPlaying ? (
@@ -229,7 +246,7 @@ const Playlist = () => {
                   key={song.uri || index}
                   song={song}
                   onClick={() => {
-                    loadQueue(songs, playlist._id);
+                    loadQueue(songs, playlist._id, "playlist");
                     setSongIndex(index);
                     playPauseSong(song);
                   }}
@@ -334,6 +351,7 @@ const Playlist = () => {
                     const data = await res.json();
                     if (data.success) {
                       window.addPlaylistToSidebar?.();
+                      window.refreshHomePage?.();
                       navigate("/");
                     }
                   } catch (err) {

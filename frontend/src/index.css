@@ -40,7 +40,7 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 10px; /* ⬅️ Thicker width */
+  width: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {

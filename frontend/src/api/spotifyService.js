@@ -2,9 +2,6 @@ import axios from "axios";
 
 const API_BASE_URL = "https://api.spotify.com/v1";
 
-/**
- * Searching songs, artists, albums, playlists
- */
 export const fetchSongs = async (query, token) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/search`, {

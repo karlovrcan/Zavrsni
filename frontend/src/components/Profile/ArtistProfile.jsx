@@ -177,6 +177,7 @@ const ArtistProfile = () => {
         const data = await res.json();
         if (data.success) {
           setIsFollowed(false);
+          window.refreshHomePage?.();
           toast("Artist removed from your profile.", {
             position: "bottom-center",
             hideProgressBar: true,
@@ -209,6 +210,7 @@ const ArtistProfile = () => {
         const data = await res.json();
         if (data.success) {
           setIsFollowed(true);
+          window.refreshHomePage?.();
           toast("Artist added to your profile.", {
             position: "bottom-center",
             hideProgressBar: true,

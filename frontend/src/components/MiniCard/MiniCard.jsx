@@ -194,8 +194,13 @@ const MiniCard = ({ song, onClick, hideAlbum = false, active = false }) => {
                 ? song.artists.slice(0, 2).map((artist, index, arr) => (
                     <Link
                       key={artist.id || `${artist.name}-${index}`}
-                      to={`/artist/${artist.id || "#"}`}
-                      onClick={(e) => e.stopPropagation()}
+                      to={artist.id ? `/artist/${artist.id}` : "#"}
+                      onClick={(e) => {
+                        if (!artist.id) {
+                          e.preventDefault();
+                        }
+                        e.stopPropagation();
+                      }}
                       className="hover:underline text-gray-400"
                     >
                       {artist.name}
