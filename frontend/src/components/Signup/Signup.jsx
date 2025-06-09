@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import logo from "../../assets/logo.svg";
 import { toast } from "react-toastify";
 import "./signup.css";
 import { useSelector } from "react-redux";
+import { BsFillFilterCircleFill } from "react-icons/bs";
 
 const months = [
   "January",
@@ -34,19 +34,16 @@ const Signup = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useSelector((state) => state.account);
 
-  // 🔹 Handle Input Changes
   const onChange = (e) => {
     setUserDetails({ ...userDetails, [e.target.name]: e.target.value });
   };
 
-  // 🔹 Handle Form Submission
   const registerUser = async (e) => {
     e.preventDefault();
 
     const { username, password, password1, email, day, month, year } =
       userDetails;
 
-    // Basic Form Validation
     if (
       !username ||
       !password ||
@@ -108,8 +105,8 @@ const Signup = () => {
       <div className="max-h-screen overflow-y-auto custom-scrollbar">
         <div className="auth-bg">
           <div className="container w-1/3 mx-auto rounded-lg">
-            <div className="logo flex justify-center pt-8">
-              <img src={logo} width={60} alt="Spotify Logo" />
+            <div className="flex justify-center pt-8">
+              <BsFillFilterCircleFill className="text-6xl" />
             </div>
 
             <div className="bg-[#121212] p-10 rounded-lg shadow-md">

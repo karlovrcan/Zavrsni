@@ -3,7 +3,7 @@ import { thunk } from "redux-thunk"; // Correct import of thunk
 import { composeWithDevTools } from "redux-devtools-extension";
 import { songReducer } from "./Reducers/SongReducer";
 import { userReducer } from "./Reducers/UserReducer";
-import { spotifyReducer } from "./Reducers/SpotifyReducer"; // Add Spotify Reducer
+import { spotifyReducer } from "./Reducers/SpotifyReducer";
 
 const initialState = {
   account: {
@@ -19,13 +19,13 @@ const initialState = {
 const reducer = combineReducers({
   mainSong: songReducer,
   account: userReducer,
-  spotify: spotifyReducer, // Add Spotify Reducer
+  spotify: spotifyReducer,
 });
 
 const store = createStore(
   reducer,
   initialState,
-  composeWithDevTools(applyMiddleware(thunk)) // Correct usage of applyMiddleware with thunk
+  composeWithDevTools(applyMiddleware(thunk))
 );
 
 export default store;

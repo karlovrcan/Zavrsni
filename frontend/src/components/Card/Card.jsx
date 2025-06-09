@@ -40,10 +40,11 @@ const Card = ({
   };
 
   const handlePlayPauseClick = () => {
+    const patchedSong = { ...song, id: song.id || song._id || song.uri };
     if (currentSong?.uri === song.uri) {
       togglePlayPause();
     } else {
-      playPauseSong(song);
+      playPauseSong(patchedSong);
     }
   };
 
@@ -88,9 +89,9 @@ const Card = ({
               className={`play_btn ${isActivePlaylist ? "active" : ""}`}
             >
               {isActivePlaylist && isPlaying ? (
-                <IoIosPause className="text-white text-3xl" />
+                <IoIosPause className="text-black text-3xl" />
               ) : (
-                <IoIosPlay className="text-white text-3xl" />
+                <IoIosPlay className="text-black text-3xl" />
               )}
             </button>
           </div>

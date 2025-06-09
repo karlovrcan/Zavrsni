@@ -12,6 +12,7 @@ import followedArtistRoutes from "./routes/artist.js";
 import recentlyPlayedRoutes from "./routes/recentlyPlayed.js";
 import featuredRoutes from "./routes/featured.js";
 import recentlyPlayedCollectionRoutes from "./routes/recentlyPlayedCollection.js";
+import categoryRoutes from "./routes/category.js";
 
 dotenv.config();
 const app = express();
@@ -32,16 +33,16 @@ app.use("/api/followed-artists", followedArtistRoutes);
 app.use("/api/recently-played", recentlyPlayedRoutes);
 app.use("/api/recently-played-collections", recentlyPlayedCollectionRoutes);
 app.use("/api/featured", featuredRoutes);
-
 app.use("/api/spotify", spotifyRoutes);
+app.use("/api/category", categoryRoutes);
 
-console.log("🔍 CLIENT_ID:", process.env.CLIENT_ID);
+console.log("CLIENT_ID:", process.env.CLIENT_ID);
 console.log(
-  "🔍 CLIENT_SECRET:",
+  "CLIENT_SECRET:",
   process.env.CLIENT_SECRET ? "Loaded" : "MISSING!"
 );
-console.log("🔍 REDIRECT_URI:", process.env.REDIRECT_URI);
+console.log("REDIRECT_URI:", process.env.REDIRECT_URI);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

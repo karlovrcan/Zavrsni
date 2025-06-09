@@ -12,9 +12,8 @@ const GuestModal = ({ onClose }) => {
           ×
         </button>
 
-        {/* Modal Content */}
         <h2 className="text-3xl font-semibold mb-2 text-center py-4">
-          Start listening with a free Spotify account.
+          Start listening with a free of charge account.
         </h2>
 
         <div className="flex flex-col gap-3 justify-center items-center">

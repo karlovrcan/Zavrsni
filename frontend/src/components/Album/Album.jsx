@@ -48,6 +48,7 @@ const Album = () => {
     togglePlayPause,
     currentPlaylistId,
     setCurrentPlaylistId,
+    tracks,
   } = useAudio();
 
   useEffect(() => {
@@ -128,6 +129,24 @@ const Album = () => {
   const saveAlbumToSidebar = async () => {
     if (!albumData || !token) return;
 
+    const spotifyTracks = albumData.tracks?.items;
+    if (!spotifyTracks || !spotifyTracks.length) {
+      console.warn("No tracks available to save for album:", albumData.id);
+      return;
+    }
+
+    const tracks = spotifyTracks.map((track) => ({
+      name: track.name,
+      uri: track.uri,
+      id: track.id,
+      duration_ms: track.duration_ms,
+      albumCover: albumData.images?.[0]?.url || "",
+      artists: track.artists.map((a) => ({
+        name: a.name,
+        id: a.id,
+      })),
+    }));
+
     try {
       const res = await fetch("http://localhost:5001/api/albums", {
         method: "POST",
@@ -143,6 +162,7 @@ const Album = () => {
             name: a.name,
             id: a.id,
           })),
+          tracks,
         }),
       });
 
@@ -153,7 +173,6 @@ const Album = () => {
         toast("Album added to your profile.", {
           position: "bottom-center",
           hideProgressBar: true,
-
           style: {
             background: "#242424",
             color: "#fff",

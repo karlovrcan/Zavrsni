@@ -6,7 +6,6 @@ import React, {
   useEffect,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchRecommendedSongs } from "../api/spotifyService";
 import { setSpotifyDeviceId } from "../states/Actions/SpotifyActions";
 
 const AudioContext = createContext();
@@ -32,8 +31,6 @@ export const AudioProvider = ({ children }) => {
 
   const [activeQueue, setActiveQueue] = useState([]);
   const [songIndex, setSongIndex] = useState(0);
-
-  const [recommendedSongs, setRecommendedSongs] = useState([]);
 
   const [isShuffling, setIsShuffling] = useState(false);
   const [originalSongs, setOriginalSongs] = useState([]);
@@ -63,6 +60,7 @@ export const AudioProvider = ({ children }) => {
 
     const enrichedSongs = newSongsArray.map((song) => ({
       ...song,
+      id: song.id || song._id || song.uri,
       source,
       playlistId: playlistId !== "recently-played" ? playlistId : undefined,
       spotifyId:
@@ -81,40 +79,13 @@ export const AudioProvider = ({ children }) => {
     setIsShuffling(false);
   };
 
-  const getRecommendedSongs = async (seeds) => {
-    if (!accessToken) {
-      console.warn("Missing access token or seeds for getRecommendedSongs.");
-      return [];
-    }
-    if (!seeds || (!seeds.trackId && !seeds.artistId && !seeds.genres)) {
-      console.warn(
-        "No valid seeds provided. Must pass at least trackId, artistId, or genres."
-      );
-      return [];
-    }
-    console.log("🎧 getRecommendedSongs with seeds:", seeds);
-    const recommended = await fetchRecommendedSongs(seeds, accessToken);
-    setRecommendedSongs(recommended);
-    return recommended;
-  };
-
   const nextSong = async () => {
-    let nextTrack = null;
-
     if (activeQueue.length > 0 && songIndex < activeQueue.length - 1) {
-      nextTrack = activeQueue[songIndex + 1];
+      const nextTrack = activeQueue[songIndex + 1];
       setSongIndex(songIndex + 1);
-    } else if (recommendedSongs.length > 0) {
-      nextTrack = recommendedSongs[0];
-      setRecommendedSongs((prev) => prev.slice(1));
-    } else if (currentSong?.id && recommendedSongs.length === 0) {
-      console.log("🔄 Fetching new recommendations for:", currentSong.id);
-      await getRecommendedSongs({ trackId: currentSong.id });
-      return;
-    }
-
-    if (nextTrack) {
       playPauseSong(nextTrack);
+    } else {
+      console.log("End of queue reached. No more songs to play.");
     }
   };
 
@@ -188,19 +159,19 @@ export const AudioProvider = ({ children }) => {
         const player = new window.Spotify.Player({
           name: "My Spotify Web Player",
           getOAuthToken: (cb) => cb(accessToken),
-          volume: 1.0,
+          volume: 0.5,
         });
 
         playerRef.current = player;
 
         player.addListener("ready", ({ device_id }) => {
-          console.log("✅ Player Ready with deviceId:", device_id);
+          console.log("Player Ready with deviceId:", device_id);
           setDeviceId(device_id);
           dispatch(setSpotifyDeviceId(device_id));
         });
 
         player.addListener("not_ready", ({ device_id }) => {
-          console.warn("⚠️ Device offline:", device_id);
+          console.warn("Device offline:", device_id);
         });
 
         player.addListener("initialization_error", (e) =>
@@ -253,9 +224,9 @@ export const AudioProvider = ({ children }) => {
 
         player.connect().then((success) => {
           if (success) {
-            console.log("✅ Connected to Web Playback SDK!");
+            console.log("Connected to Web Playback SDK!");
           } else {
-            console.error("❌ Failed to connect!");
+            console.error("Failed to connect!");
           }
         });
       };
@@ -263,7 +234,7 @@ export const AudioProvider = ({ children }) => {
 
     return () => {
       if (playerRef.current) {
-        console.log("🛑 Disconnecting Spotify player...");
+        console.log("Disconnecting Spotify player...");
         playerRef.current.disconnect();
       }
     };
@@ -327,17 +298,17 @@ export const AudioProvider = ({ children }) => {
 
   const playPauseSong = async (song) => {
     if (!song || !song.uri) {
-      console.error("❌ Invalid song:", song);
+      console.error("Invalid song:", song);
       return;
     }
 
     if (!deviceId) {
-      console.warn("⚠️ No deviceId yet. Wait for the player to be ready.");
+      console.warn("No deviceId yet. Wait for the player to be ready.");
       return;
     }
 
     console.log(
-      "🎵 Starting track:",
+      "Starting track:",
       song.name,
       "| Track ID:",
       song.id || song._id
@@ -356,6 +327,8 @@ export const AudioProvider = ({ children }) => {
 
       const enriched = {
         ...song,
+        _id: song._id || song.id || song.uri,
+        albumId: song.albumId || song.album?.id || null,
         source:
           song.source ||
           (currentPlaylistId && currentPlaylistId !== "recently-played"
@@ -382,7 +355,7 @@ export const AudioProvider = ({ children }) => {
         body: JSON.stringify({ song: enriched }),
       })
         .then(() => {
-          window.refreshRecentlyPlayed?.(); // ✅ This triggers the update on the page
+          window.refreshRecentlyPlayed?.();
         })
         .catch((err) =>
           console.error("Failed to save recently played song:", err)
@@ -401,18 +374,14 @@ export const AudioProvider = ({ children }) => {
           body: JSON.stringify({ uris: [song.uri] }),
         }
       );
-
-      if (activeQueue.length === 0 && song.id) {
-        getRecommendedSongs({ trackId: song.id });
-      }
     } catch (error) {
-      console.error("❌ Error playing song:", error);
+      console.error("Error playing song:", error);
     }
   };
 
   const togglePlayPause = async () => {
     if (!deviceId || !playerRef.current) {
-      console.warn("⚠️ Can't toggle; player or deviceId not ready.");
+      console.warn("Can't toggle; player or deviceId not ready.");
       return;
     }
     try {
@@ -426,32 +395,32 @@ export const AudioProvider = ({ children }) => {
       );
       setIsPlaying(!isPlaying);
     } catch (error) {
-      console.error("❌ Error toggling playback:", error);
+      console.error("Error toggling playback:", error);
     }
   };
 
   const handleSeek = async (percent) => {
     if (!playerRef.current) {
-      console.warn("⚠️ playerRef is null. Not seeking yet.");
+      console.warn("playerRef is null. Not seeking yet.");
       return;
     }
     if (!deviceId) {
-      console.warn("⚠️ deviceId missing. Not seeking yet.");
+      console.warn("deviceId missing. Not seeking yet.");
       return;
     }
     if (!isPlaying && !currentSong) {
-      console.warn("⚠️ No track loaded or playing. Not seeking yet.");
+      console.warn("No track loaded or playing. Not seeking yet.");
       return;
     }
     if (durationMs === 0) {
-      console.warn("⚠️ durationMs=0. Not seeking yet.");
+      console.warn("durationMs=0. Not seeking yet.");
       return;
     }
     const newPositionMs = Math.round((percent / 100) * durationMs);
     try {
       await playerRef.current.seek(newPositionMs);
     } catch (err) {
-      console.error("❌ Error seeking in Spotify player:", err);
+      console.error("Error seeking in Spotify player:", err);
     }
   };
 
@@ -460,13 +429,13 @@ export const AudioProvider = ({ children }) => {
     setVolume(newVolume);
 
     if (!playerRef.current) {
-      console.warn("⚠️ Player not ready, can't set volume yet.");
+      console.warn("Player not ready, can't set volume yet.");
       return;
     }
     try {
       await playerRef.current.setVolume(newVolume / 100);
     } catch (err) {
-      console.error("❌ Error setting volume:", err);
+      console.error(" Error setting volume:", err);
     }
   };
 
@@ -488,7 +457,6 @@ export const AudioProvider = ({ children }) => {
   const clearQueue = () => {
     setActiveQueue([]);
     setOriginalSongs([]);
-    setRecommendedSongs([]);
     setCurrentSong(null);
     setSongIndex(0);
     setIsPlaying(false);
@@ -514,9 +482,6 @@ export const AudioProvider = ({ children }) => {
 
         isShuffling,
         shuffleSongs,
-
-        recommendedSongs,
-        getRecommendedSongs,
 
         progress: localProgress,
         currTime: formatTime(localCurrTime / 1000),

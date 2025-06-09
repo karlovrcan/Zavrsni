@@ -45,12 +45,10 @@ const SongBar = () => {
   const { user, token } = useSelector((state) => state.account);
   const accessToken = useSelector((state) => state.spotify.accessToken);
 
-  // “Add to Playlist” dropdown
   const [playlists, setPlaylists] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [addedToPlaylists, setAddedToPlaylists] = useState([]);
 
-  // Queue dropdown
   const [queueDropdownOpen, setQueueDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -59,7 +57,6 @@ const SongBar = () => {
     }
   }, [user, token, currentSongUri]);
 
-  // Optionally fetch missing artist IDs for the currentSong
   useEffect(() => {
     if (!accessToken || !currentSong?.artists?.length) return;
     const needsFetching = currentSong.artists.some((a) => !a.id);
@@ -93,7 +90,6 @@ const SongBar = () => {
       const data = await res.json();
       if (data.success) {
         setPlaylists(data.playlists);
-        // Mark which playlists contain the current track
         const inThese = data.playlists
           .filter((p) => p.songs.some((s) => s.uri === currentSongUri))
           .map((p) => p._id);
@@ -111,12 +107,19 @@ const SongBar = () => {
     const endpoint = isAdded ? "remove-song" : "add-song";
 
     const body = {
-      songId: currentSongUri,
+      songId: currentSong.uri,
       name: currentSong.name,
       uri: currentSong.uri,
-      artists: currentSong.artists || [],
-      album: currentSong.album || "Unknown Album",
+      album:
+        currentSong.album?.name ||
+        currentSong.albumName ||
+        currentSong.album ||
+        "Unknown Album",
       albumCover: currentSong.albumCover || "",
+      albumId: currentSong.albumId || currentSong.album?.id || null,
+      artists: currentSong.artists || [],
+      artistId: currentSong.artistId || currentSong.artists?.[0]?.id || null,
+      spotifyId: currentSong.spotifyId || null,
       duration_ms: currentSong.duration_ms || 0,
     };
 
@@ -157,7 +160,6 @@ const SongBar = () => {
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  // Seek (by clicking progress bar)
   const handleSeekClick = (e) => {
     if (disabled) return;
     const slider = e.currentTarget;
@@ -167,7 +169,6 @@ const SongBar = () => {
     changeProgress(newProgress);
   };
 
-  // Identify next track and rest of queue using activeQueue, not songs
   let nextSongToPlay = null;
   let restOfQueue = [];
 
@@ -176,16 +177,13 @@ const SongBar = () => {
       (s) => s.uri === currentSong.uri
     );
     if (currentIndex !== -1) {
-      // immediate next
       if (currentIndex < activeQueue.length - 1) {
         nextSongToPlay = activeQueue[currentIndex + 1];
       }
-      // everything after that
       if (currentIndex + 2 <= activeQueue.length - 1) {
         restOfQueue = activeQueue.slice(currentIndex + 2);
       }
     } else {
-      // fallback
       restOfQueue = activeQueue.filter((s) => s.uri !== currentSong.uri);
     }
   }
@@ -407,7 +405,7 @@ const SongBar = () => {
 
       {queueDropdownOpen && !disabled && (
         <div
-          className="fixed top-[64px] bottom-[91px] right-0 w-1/3 bg-[#121212]
+          className="fixed top-[64px] bottom-[91px] right-0 w-1/3 tertiary_bg
                      z-[1000] drop-shadow-[-4px_0_6px_rgba(0,0,0,0.5)]
                      border-l-[2px] border-black/40
                      flex flex-col"
@@ -427,35 +425,11 @@ const SongBar = () => {
               />
             </div>
 
-            <div className="mb-6 px-2">
-              <p className="text-normal font-semibold text-gray-400 mb-2 px-1">
+            <div className="mb-2 px-2 shadow-[0_3px_4px_-1px_rgba(0,0,0,0.5)] pb-3">
+              <p className="text-normal font-semibold text-gray-400 mb-2 px-1 ">
                 Now Playing
               </p>
               {currentSong && <MiniCard song={currentSong} hideAlbum active />}
-            </div>
-
-            <div className="shadow-[0_3px_4px_-1px_rgba(0,0,0,0.5)] pb-3">
-              <p className="text-normal font-semibold text-gray-400 mb-2 px-3">
-                Next Song
-              </p>
-              {nextSongToPlay && (
-                <div className="px-3">
-                  <MiniCard
-                    key={`${nextSongToPlay.uri}-next`}
-                    song={nextSongToPlay}
-                    hideAlbum
-                    onClick={() => {
-                      const indexInQueue = activeQueue.findIndex(
-                        (s) => s.uri === nextSongToPlay.uri
-                      );
-                      if (indexInQueue !== -1) {
-                        setSongIndex(indexInQueue);
-                        playPauseSong(nextSongToPlay);
-                      }
-                    }}
-                  />
-                </div>
-              )}
             </div>
           </div>
 

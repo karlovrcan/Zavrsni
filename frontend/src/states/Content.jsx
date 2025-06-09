@@ -45,7 +45,6 @@ export const AppProvider = ({ children }) => {
       const data = await response.json();
       console.log("Spotify user data:", data);
 
-      // ✅ Refresh sidebar/home data
       fetchPlaylists();
       fetchSpotifyPlaylists();
       fetchAlbums();
@@ -201,12 +200,10 @@ export const AppProvider = ({ children }) => {
         setSongIdx,
         setPendingSongIdx,
 
-        // Misc
         getUser,
         filteredSongs,
         setFilteredSongs,
 
-        // Data
         playlists,
         spotifyPlaylists,
         albums,
@@ -214,7 +211,6 @@ export const AppProvider = ({ children }) => {
         featuredPlaylists,
         categoryPlaylists,
 
-        // Fetching
         fetchPlaylists,
         fetchSpotifyPlaylists,
         fetchAlbums,

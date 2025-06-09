@@ -1,4 +1,3 @@
-// routes/admin.js
 import express from "express";
 import User from "../models/User.js";
 import isAdmin from "../middleware/isAdmin.js";

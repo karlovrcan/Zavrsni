@@ -5,17 +5,15 @@ import {
 } from "../Constants/UserConstant";
 
 export const userActor = (user, token) => {
-  sessionStorage.setItem("token", token); // Store token securely
+  sessionStorage.setItem("token", token);
   return { type: USER_LOGGED_IN, payload: { user, token } };
 };
 
-// 🔹 Log Out User & Remove Token
 export const userLogout = () => {
-  sessionStorage.removeItem("token"); // Clear token on logout
+  sessionStorage.removeItem("token");
   return { type: USER_LOGGED_OUT };
 };
 
-// 🔹 Get User Information
 export const getUser = (user) => {
   return { type: USER_ABOUT, payload: user };
 };

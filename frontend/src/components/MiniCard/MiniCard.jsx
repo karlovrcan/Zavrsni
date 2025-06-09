@@ -25,13 +25,7 @@ const MiniCard = ({ song, onClick, hideAlbum = false, active = false }) => {
     console.error("MiniCard received an undefined song prop.");
     return null;
   }
-  const {
-    currentSong,
-    isPlaying,
-    playPauseSong,
-    togglePlayPause,
-    getRecommendedSongs,
-  } = useAudio();
+  const { currentSong, isPlaying, playPauseSong, togglePlayPause } = useAudio();
 
   const { user, token, isAuthenticated } = useSelector(
     (state) => state.account

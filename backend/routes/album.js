@@ -10,7 +10,7 @@ const router = express.Router();
  * @access  Private
  */
 router.post("/", verifyToken, async (req, res) => {
-  const { spotifyId, name, image, artists, genre } = req.body;
+  const { spotifyId, name, image, artists, genre, tracks } = req.body;
 
   try {
     const existing = await Album.findOne({ spotifyId, addedBy: req.user._id });
@@ -25,6 +25,7 @@ router.post("/", verifyToken, async (req, res) => {
       artists,
       addedBy: req.user._id,
       genre,
+      tracks,
     });
 
     await album.save();

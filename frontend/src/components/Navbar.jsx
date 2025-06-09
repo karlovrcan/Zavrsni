@@ -1,12 +1,13 @@
 import React, { useState, useContext } from "react";
 import { FiSearch } from "react-icons/fi";
+import { LuGalleryVerticalEnd } from "react-icons/lu";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
 import { GoHome } from "react-icons/go";
-import logo from "../assets/logo.svg";
 import { userLogout } from "../states/Actors/userActors";
 import { useAudio } from "../states/AudioProvider";
+import { BsFillFilterCircleFill } from "react-icons/bs";
 
 const Navbar = ({ onSearch }) => {
   const { isAuthenticated, user } = useSelector((state) => state.account);
@@ -35,11 +36,11 @@ const Navbar = ({ onSearch }) => {
   };
 
   return (
-    <div className="sticky top-0 z-10 bg-black shadow-md pb-2 pt-2 px-4">
+    <div className="sticky top-0 z-[5000] bg-black shadow-md pb-2 pt-2 px-4">
       <div className="flex items-center">
         <div className="mr-4 w-1/4">
           <Link to="/" className="inline-block">
-            <img src={logo} alt="Spotify Logo" className="w-8 h-8" />
+            <BsFillFilterCircleFill className="text-3xl" />
           </Link>
         </div>
         <div className="flex-grow flex items-center justify-start px-9 space-x-4 ">
@@ -51,7 +52,11 @@ const Navbar = ({ onSearch }) => {
 
           <div className="relative w-2/3">
             <form onSubmit={handleSearch}>
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white-400 text-2xl" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white-400 text-2xl" />
+              <LuGalleryVerticalEnd
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white-400 text-2xl cursor-pointer hover:scale-110 transform duration-200"
+                onClick={() => navigate("/browse")}
+              />
               <input
                 type="text"
                 placeholder="What do you want to play?"
@@ -62,11 +67,13 @@ const Navbar = ({ onSearch }) => {
                     `/search?query=${encodeURIComponent(e.target.value)}`
                   );
                 }}
-                className="w-full p-3 px-11 text-black rounded-full text-white tertiary_bg focus:outline-none font-normal"
+                /* pl-11 for the search icon, pr-11 for the gallery icon */
+                className="w-full p-3 pl-11 pr-11 rounded-full text-white font-normal tertiary_bg focus:outline-none"
               />
             </form>
           </div>
         </div>
+
         <div
           className={`w-1/4 flex ${
             isAuthenticated ? "justify-center" : "justify-end"

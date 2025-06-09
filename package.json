@@ -1,5 +1,12 @@
 {
   "dependencies": {
     "cors": "^2.8.5"
+  },
+  "scripts": {
+    "start:dev": "concurrently \"npm run mongo\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "mongo": "mongod --dbpath ./backend/data/db"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

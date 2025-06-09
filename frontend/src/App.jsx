@@ -18,6 +18,7 @@ import Signup from "./components/Signup/Signup";
 import Songbar from "./components/MasterBar/SongBar";
 import Playlist from "./components/Playlist/Playlist";
 import SpotifyPlaylist from "./components/Playlist/SpotifyPlaylist";
+import Layout from "./Layout/Layout";
 import ArtistProfile from "./components/Profile/ArtistProfile";
 import Album from "./components/Album/Album";
 import Profile from "./components/Profile/Profile";
@@ -25,9 +26,9 @@ import ProfileView from "./components/ProfileView/ProfileView";
 import Admin from "./components/Admin/Admin";
 import { fetchSongs } from "./api/spotifyService";
 import RecentlyPlayed from "./components/RecentlyPlayed/RecentlyPlayed";
-import CategoryPlaylist from "./components/CategoryPlaylist/CategoryPlaylist";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import BrowsePage from "./components/Browse/Browse";
 
 const AppContent = () => {
   const dispatch = useDispatch();
@@ -40,6 +41,8 @@ const AppContent = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get("query") || "";
+  const tagQuery = queryParams.get("tags") || "";
+  const isTagSearch = !!tagQuery;
 
   const hideNavAndSongBar =
     location.pathname === "/login" || location.pathname === "/signup";
@@ -56,7 +59,7 @@ const AppContent = () => {
           dispatch({ type: USER_ABOUT, payload: res.data.user });
         }
       } catch (err) {
-        console.error("🔴 Failed to restore user:", err.message);
+        console.error("Failed to restore user:", err.message);
       }
     };
 
@@ -66,10 +69,11 @@ const AppContent = () => {
   }, []);
 
   useEffect(() => {
-    if (searchQuery) {
-      handleSearch(searchQuery);
+    const queryToUse = isTagSearch ? tagQuery : searchQuery;
+    if (queryToUse) {
+      handleSearch(queryToUse);
     }
-  }, [searchQuery, accessToken]);
+  }, [searchQuery, tagQuery, accessToken]);
 
   const handleSearch = async (query) => {
     if (!query || !accessToken) return;
@@ -113,8 +117,15 @@ const AppContent = () => {
         <Route path="/album/:id" element={<Album />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/recently-played" element={<RecentlyPlayed />} />
-        <Route path="/category/:categoryId" element={<CategoryPlaylist />} />
         <Route path="/user/:userId" element={<ProfileView />} />
+        <Route
+          path="/browse"
+          element={
+            <Layout>
+              <BrowsePage />
+            </Layout>
+          }
+        />
       </Routes>
       <ToastContainer position="bottom-right" autoClose={3000} theme="dark" />
       {!hideNavAndSongBar && <Songbar />}

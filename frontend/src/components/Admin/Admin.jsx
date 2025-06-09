@@ -15,6 +15,22 @@ const Admin = () => {
   const [showAllAlbums, setShowAllAlbums] = useState(false);
   const [showAllSongs, setShowAllSongs] = useState(false);
 
+  const [categories, setCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState({
+    label: "",
+    tags: "",
+    color: "#000000",
+  });
+
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get("/api/category");
+      setCategories(res.data);
+    } catch (err) {
+      console.error("Failed to fetch categories", err);
+    }
+  };
+
   useEffect(() => {
     const checkAdmin = async () => {
       const token = sessionStorage.getItem("token");
@@ -35,6 +51,7 @@ const Admin = () => {
         fetchAlbumStats(token);
         fetchSongStats(token);
         fetchLocalPlaylistStats(token);
+        fetchCategories();
       } catch (err) {
         console.error("Authorization failed", err);
         navigate("/login");
@@ -366,6 +383,124 @@ const Admin = () => {
           </div>
         </>
       )}
+      <h2 className="text-2xl text-center font-bold text-white mt-20 mb-5 border-b border-white/10 pb-1">
+        Manage Categories
+      </h2>
+
+      <div className="max-w-xl mx-auto mb-10 bg-[#1a1a1a] p-6 rounded-lg shadow-md">
+        <h3 className="text-white text-lg font-semibold mb-4">
+          Create New Category
+        </h3>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const token = sessionStorage.getItem("token");
+              await axios.post(
+                "/api/category",
+                {
+                  label: newCategory.label,
+                  tags: newCategory.tags.split(",").map((tag) => tag.trim()),
+                  color: newCategory.color,
+                },
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              setNewCategory({ label: "", tags: "", color: "#000000" });
+              fetchCategories();
+            } catch (err) {
+              alert("Failed to create category");
+              console.error(err);
+            }
+          }}
+        >
+          <div className="mb-3">
+            <label className="text-white text-sm">Label</label>
+            <input
+              type="text"
+              value={newCategory.label}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, label: e.target.value })
+              }
+              className="w-full mt-1 p-2 bg-gray-700 text-white rounded"
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label className="text-white text-sm">Tags (comma-separated)</label>
+            <input
+              type="text"
+              value={newCategory.tags}
+              onChange={(e) =>
+                setNewCategory({
+                  ...newCategory,
+                  tags: e.target.value,
+                })
+              }
+              className="w-full mt-1 p-2 bg-gray-700 text-white rounded"
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="text-white text-sm">Color</label>
+            <input
+              type="color"
+              value={newCategory.color}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, color: e.target.value })
+              }
+              className="w-full mt-1 p-2 rounded"
+            />
+          </div>
+          <button
+            type="submit"
+            className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Add Category
+          </button>
+        </form>
+      </div>
+
+      <div className="max-w-3xl mx-auto">
+        <h3 className="text-white text-lg font-semibold mb-4 text-center">
+          Existing Categories
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          {categories.map((cat) => (
+            <div
+              key={cat._id}
+              className="bg-[#2a2a2a] p-4 rounded flex justify-between items-center"
+            >
+              <div>
+                <p className="text-white font-bold">{cat.label}</p>
+                <p className="text-gray-400 text-sm">
+                  Tags: {cat.tags?.join(", ") || "None"}
+                </p>
+              </div>
+              <button
+                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                onClick={async () => {
+                  if (!window.confirm("Delete this category?")) return;
+                  try {
+                    const token = sessionStorage.getItem("token");
+                    await axios.delete(`/api/category/${cat._id}`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    fetchCategories();
+                  } catch (err) {
+                    console.error(err);
+                    alert("Failed to delete category");
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

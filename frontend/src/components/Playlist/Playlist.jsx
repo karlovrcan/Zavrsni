@@ -90,6 +90,11 @@ const Playlist = () => {
     songs.some((s) => s.uri === currentSong?.uri) &&
     isPlaying;
 
+  const enrichedSongs = songs.map((s) => ({
+    ...s,
+    id: s.id || s._id || s.uri,
+  }));
+
   const handleRenamePlaylist = () => {
     setMenuOpen(false);
     setNewPlaylistName(playlist?.name || "");
@@ -162,7 +167,7 @@ const Playlist = () => {
         </div>
 
         <div className="w-full bg-black/50 pb-[110px]">
-          <div className="flex items-center pt-6 pl-6 gap-4 mb-6 mt-6">
+          <div className="relative flex items-center pt-6 pl-6 gap-4 mb-6 mt-6">
             <button
               className="bg-[#1db954] text-white font-bold p-2 transition hover:scale-110 rounded-full flex items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
               onClick={() => {
@@ -190,7 +195,6 @@ const Playlist = () => {
                     tracks: songs,
                   }),
                 });
-                console.log("Saved collection", response);
               }}
             >
               {isCurrentPlaylistPlaying ? (
@@ -200,31 +204,33 @@ const Playlist = () => {
               )}
             </button>
 
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="text-white hover:text-gray-300"
-            >
-              <SlOptions className="text-2xl" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="text-white hover:text-gray-300"
+              >
+                <SlOptions className="text-2xl" />
+              </button>
 
-            {menuOpen && (
-              <div className="absolute left-[130px] w-auto bg-[#1a1a1a] border border-white/10 rounded shadow z-50">
-                <button
-                  onClick={handleRenamePlaylist}
-                  className="flex items-center justify-start gap-3 w-full px-4 py-2 text-sm font-medium text-white-400 hover:text-white hover:bg-gray-500/10 transition duration-200 "
-                >
-                  <FiEdit3 className="text-xl" />
-                  Rename
-                </button>
-                <button
-                  onClick={handleDeletePlaylist}
-                  className="flex items-center justify-start gap-3 w-full px-4 py-2 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/10 transition duration-200  border-t border-white/10"
-                >
-                  <MdOutlineDeleteOutline className="text-lg" />
-                  Delete Playlist
-                </button>
-              </div>
-            )}
+              {menuOpen && (
+                <div className="absolute  w-max bg-[#1a1a1a] border border-white/10 rounded shadow z-[1000]">
+                  <button
+                    onClick={handleRenamePlaylist}
+                    className="flex items-center justify-start gap-3 w-full px-4 py-2 text-sm font-medium text-white-400 hover:text-white hover:bg-gray-500/10 transition duration-200 "
+                  >
+                    <FiEdit3 className="text-xl" />
+                    Rename
+                  </button>
+                  <button
+                    onClick={handleDeletePlaylist}
+                    className="flex items-center justify-start gap-3 w-full px-4 py-2 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/10 transition duration-200 border-t border-white/10"
+                  >
+                    <MdOutlineDeleteOutline className="text-lg" />
+                    Delete Playlist
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between px-4 py-2 text-gray-300 text-sm">
@@ -240,13 +246,13 @@ const Playlist = () => {
           <div className="w-full h-[2px] bg-white/10"></div>
 
           <div className="flex flex-col px-4 pt-2">
-            {songs.length > 0 ? (
-              songs.map((song, index) => (
+            {enrichedSongs.length > 0 ? (
+              enrichedSongs.map((song, index) => (
                 <MiniCard
                   key={song.uri || index}
                   song={song}
                   onClick={() => {
-                    loadQueue(songs, playlist._id, "playlist");
+                    loadQueue(enrichedSongs, playlist._id, "playlist");
                     setSongIndex(index);
                     playPauseSong(song);
                   }}

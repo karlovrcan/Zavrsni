@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState, useContext } from "react";
 import { toast } from "react-toastify";
-import logo from "../../assets/logo.svg";
 import "./login.css";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { handleSpotifyCallback } from "../../states/Actions/SpotifyActions";
+import { BsFillFilterCircleFill } from "react-icons/bs";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -106,14 +106,12 @@ const Login = () => {
       <div className="container w-1/3 mx-auto rounded-lg">
         <div className="logo flex justify-center pt-8">
           <Link to="/">
-            <img src={logo} width={60} alt="Spotify Logo" />
+            <BsFillFilterCircleFill className="text-7xl" />
           </Link>
         </div>
 
         <div className="bg-[#121212] p-10 rounded-lg shadow-md">
-          <h1 className="text-3xl font-bold text-center mb-7">
-            Log in to Spotify
-          </h1>
+          <h1 className="text-3xl font-bold text-center mb-7">Log in to App</h1>
 
           <form onSubmit={loginUser} className="text-center space-y-4">
             <div className="w-full text-sm font-bold text-left">
@@ -169,7 +167,7 @@ const Login = () => {
                 to="/signup"
                 className="underline text-white hover:text-[#1db954]"
               >
-                Sign up for Spotify.
+                Sign up for Listening.
               </Link>
             </p>
           </div>

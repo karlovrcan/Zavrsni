@@ -95,7 +95,7 @@ const RecentlyPlayed = () => {
             {staticList.map((track, index) => (
               <MiniCard
                 key={`${track.uri}-${index}`}
-                song={track}
+                song={{ ...track, id: track.id || track._id || track.uri }}
                 onClick={() => {
                   loadQueue(staticList, "recently-played");
                   setSongIndex(index);

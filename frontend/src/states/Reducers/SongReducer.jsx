@@ -14,13 +14,13 @@ export const songReducer = (state = initialState, action) => {
   switch (action.type) {
     case "PLAY_SONG_REQUEST":
       return {
-        masterSong: action.payload, // Set the current song
-        isPlaying: true, // Set the song as playing
+        masterSong: action.payload,
+        isPlaying: true,
       };
     case "PAUSE_SONG_REQUEST":
       return {
         ...state,
-        isPlaying: false, // Set the song as paused
+        isPlaying: false,
       };
     default:
       return state;

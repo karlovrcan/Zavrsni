@@ -9,7 +9,6 @@ import SingularCard from "../SingularCard/SingularCard";
 import ArtistCard from "../ArtistCard/ArtistCard";
 import GuestModalPortal from "../GuestModal/GuestModalPortal";
 import { useAudio } from "../../states/AudioProvider";
-import { LOCAL_CATEGORIES } from "../Browse/Browse";
 
 export default function Search({
   songs = [],
@@ -19,6 +18,11 @@ export default function Search({
 }) {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
+  const tagParam = queryParams.get("tags");
+  const tags = tagParam
+    ? tagParam.split(",").map((tag) => tag.trim().toLowerCase())
+    : [];
+
   const initialQuery = queryParams.get("query") || "";
   const source = queryParams.get("source");
   const isFromBrowse = source === "browse";
@@ -28,6 +32,7 @@ export default function Search({
   const [isLoading, setIsLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [allCategories, setAllCategories] = useState([]);
 
   const { isAuthenticated, user } = useSelector((state) => state.account);
   const accessToken = useSelector((state) => state.spotify.accessToken);
@@ -53,6 +58,8 @@ export default function Search({
     .split(/[+,\s]+/)
     .filter(Boolean);
 
+  const effectiveTokens = tags.length > 0 ? tags : queryTokens;
+
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const newQuery = queryParams.get("query") || "";
@@ -69,6 +76,20 @@ export default function Search({
     return () => clearTimeout(delay);
   }, [searchQuery]);
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/category");
+        const data = await res.json();
+        setAllCategories(data);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   const tokenizedMatch = (text, tokens) => {
     if (!text) return false;
     const lower = text.toLowerCase();
@@ -76,20 +97,20 @@ export default function Search({
   };
 
   const songMatchesQuery = (song) =>
-    tokenizedMatch(song.name, queryTokens) ||
-    song.artists?.some((a) => tokenizedMatch(a.name, queryTokens)) ||
-    tokenizedMatch(song.album?.name, queryTokens);
+    tokenizedMatch(song.name, effectiveTokens) ||
+    song.artists?.some((a) => tokenizedMatch(a.name, effectiveTokens)) ||
+    tokenizedMatch(song.album?.name, effectiveTokens);
 
   const artistMatchesQuery = (artist) =>
-    tokenizedMatch(artist.name, queryTokens);
+    tokenizedMatch(artist.name, effectiveTokens);
 
   const albumMatchesQuery = (album) =>
-    tokenizedMatch(album.name, queryTokens) ||
-    album.artists?.some((a) => tokenizedMatch(a.name, queryTokens));
+    tokenizedMatch(album.name, effectiveTokens) ||
+    album.artists?.some((a) => tokenizedMatch(a.name, effectiveTokens));
 
   const playlistMatchesQuery = (playlist) =>
-    tokenizedMatch(playlist.name, queryTokens) ||
-    tokenizedMatch(playlist.owner?.display_name, queryTokens);
+    tokenizedMatch(playlist.name, effectiveTokens) ||
+    tokenizedMatch(playlist.owner?.display_name, effectiveTokens);
 
   const matchedSongs = songs.filter((song) => song && songMatchesQuery(song));
   const matchedArtists = artists.filter(
@@ -242,9 +263,12 @@ export default function Search({
     }
   };
 
-  const categoryLabel = LOCAL_CATEGORIES.find((cat) =>
-    searchQuery.toLowerCase().includes(cat.id)
-  )?.label;
+  const matchedCategory = allCategories.find((cat) =>
+    tags.every((tag) => cat.tags.includes(tag))
+  );
+
+  const categoryLabel =
+    isFromBrowse && matchedCategory ? `${matchedCategory.label}` : null;
 
   return (
     <>
@@ -254,8 +278,14 @@ export default function Search({
             showResults ? "opacity-100" : "opacity-0"
           }`}
         >
-          <div className="px-2 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar">
-            {searchQuery === "" ? (
+          <div
+            className={`${
+              isFromBrowse
+                ? "overflow-auto custom-scrollbar w-full secondary_bg h-[calc(100vh-155px)]"
+                : "px-2 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar"
+            }`}
+          >
+            {!searchQuery && tags.length === 0 ? (
               <BrowsePage setSearchQuery={setSearchQuery} />
             ) : isLoading ? (
               <div className="flex justify-center items-center h-full">
@@ -286,7 +316,13 @@ export default function Search({
                   </div>
                 )}
 
-                <div className="px-3 pt-20 pb-6 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar">
+                <div
+                  className={`${
+                    isFromBrowse
+                      ? ""
+                      : "px-3 pt-20 pb-6 secondary_bg rounded-lg h-[calc(100vh-155px)] overflow-auto custom-scrollbar"
+                  }`}
+                >
                   {!isFromBrowse &&
                     ["all", "songs"].includes(activeFilter) &&
                     songs.length > 0 && (
@@ -449,14 +485,26 @@ export default function Search({
                         </div>
                       </>
                     )}
+                  {isFromBrowse && matchedCategory && (
+                    <div
+                      className="w-full px-6 rounded-t-lg py-20 mb-10 shadow-lg "
+                      style={{
+                        backgroundColor: matchedCategory.color,
+                        backgroundImage:
+                          "linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.2))",
+                      }}
+                    >
+                      <h1 className="text-8xl font-extrabold text-white drop-shadow-md">
+                        {matchedCategory.label}
+                      </h1>
+                    </div>
+                  )}
 
                   {["all", "playlists"].includes(activeFilter) &&
                     playlists.length > 0 && (
                       <>
-                        <h2 className="text-2xl font-bold mt-3 mb-2 px-6">
-                          {isFromBrowse
-                            ? categoryLabel ?? "Category"
-                            : "Playlists"}
+                        <h2 className="text-xl font-semibold px-6 mb-3 text-white">
+                          Playlists
                         </h2>
 
                         <div className="grid grid-cols-5 px-3">

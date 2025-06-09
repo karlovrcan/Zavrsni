@@ -13,6 +13,17 @@ const albumSchema = new mongoose.Schema({
       id: String,
     },
   ],
+  tracks: [
+    {
+      name: String,
+      uri: String,
+      id: String,
+      duration_ms: Number,
+      albumCover: String,
+      artists: [{ name: String, id: String }],
+    },
+  ],
+
   genre: { type: String, default: "" },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,

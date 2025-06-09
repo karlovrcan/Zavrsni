@@ -9,7 +9,8 @@ const Layout = ({ children }) => {
         <Sidebar />
       </div>
 
-      <div className="flex-grow ml-[420px] overflow-y-auto relative z-0 pb-[100px]">
+      <div className="flex-grow h-screen ml-[420px] overflow-y-auto custom-scrollbar relative z-0 pb-[100px]">
+        {" "}
         {children}
       </div>
 

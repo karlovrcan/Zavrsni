@@ -43,7 +43,7 @@ router.get("/", verifyToken, async (req, res) => {
     );
     res.json({ success: true, playlists });
   } catch (error) {
-    console.error("❌ Error fetching playlists:", error);
+    console.error(" Error fetching playlists:", error);
     res.status(500).json({ success: false, message: "Server error", error });
   }
 });
@@ -70,7 +70,7 @@ router.put("/:id", verifyToken, async (req, res) => {
 
     res.json({ success: true, playlist });
   } catch (error) {
-    console.error("❌ Error updating playlist:", error);
+    console.error("Error updating playlist:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -125,7 +125,7 @@ router.post("/:playlistId/add-song", verifyToken, async (req, res) => {
     }
 
     playlist.songs.push({
-      _id: songId,
+      _id: songId || uri,
       name,
       uri,
       artists: artists.map((a) => ({
@@ -164,10 +164,11 @@ router.post("/:playlistId/remove-song", verifyToken, async (req, res) => {
         .json({ success: false, message: "Playlist not found" });
     }
 
-    playlist.songs = playlist.songs.filter((s) => s._id !== songId);
-    await playlist.save();
+    await Playlist.findByIdAndUpdate(playlistId, {
+      $pull: { songs: { _id: songId } },
+    });
 
-    res.json({ success: true, message: "Song removed", playlist });
+    res.json({ success: true, message: "Song removed" });
   } catch (error) {
     console.error("Error removing song:", error);
     res.status(500).json({ success: false, message: "Server error", error });
@@ -193,7 +194,7 @@ router.get("/:id", async (req, res) => {
 
     res.json({ success: true, playlist });
   } catch (error) {
-    console.error("❌ Error fetching playlist:", error);
+    console.error("Error fetching playlist:", error);
     res.status(500).json({ success: false, message: "Server error", error });
   }
 });

@@ -21,10 +21,11 @@ const SingularCard = ({
   const isActive = isCurrent && isPlaying;
 
   const handleClick = () => {
+    const patchedSong = { ...song, id: song.id || song._id || song.uri };
     if (isCurrent) {
       togglePlayPause();
     } else {
-      handlePlay();
+      handlePlay(patchedSong);
     }
   };
 

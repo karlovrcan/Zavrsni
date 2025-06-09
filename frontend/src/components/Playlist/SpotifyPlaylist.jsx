@@ -57,6 +57,7 @@ const SpotifyPlaylist = () => {
             ?.map(({ track }) => {
               if (!track) return null;
               return {
+                id: track.id || track.uri || "unknown",
                 uri: track.uri,
                 name: track.name,
                 artists: track.artists,
@@ -147,6 +148,7 @@ const SpotifyPlaylist = () => {
           },
           tracks:
             playlist.tracks.items?.map(({ track }) => ({
+              id: track.id || track.uri || "unknown",
               uri: track.uri || "unknown",
               name: track.name,
               album: track.album?.name || "Unknown Album",
@@ -243,6 +245,7 @@ const SpotifyPlaylist = () => {
       ?.map(({ track }) => {
         if (!track) return null;
         return {
+          id: track.id || track.uri || "unknown",
           uri: track.uri,
           name: track.name,
           artists: track.artists,
@@ -290,7 +293,10 @@ const SpotifyPlaylist = () => {
           collectionId: playlist.id,
           title: playlist.name,
           image: playlist.images?.[0]?.url || "",
-          tracks: formattedTracks,
+          tracks: formattedTracks.map((t) => ({
+            ...t,
+            id: t.id || t.uri || "unknown",
+          })),
         }),
       }
     );

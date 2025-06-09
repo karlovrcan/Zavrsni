@@ -17,20 +17,23 @@ const ArtistCard = ({ song, onPlayRequest, onClickCard }) => {
     currentPlaylistId,
   } = useAudio();
 
-  const isActive = currentPlaylistId === song.id && isPlaying;
+  const isActive = currentPlaylistId === song.id && currentSong && isPlaying;
 
   const handlePlayPauseClick = (e) => {
     e.stopPropagation();
-    if (onPlayRequest) {
-      onPlayRequest(song);
-    } else {
+    const patchedSong = { ...song, id: song.id || song._id || song.uri };
+    if (currentPlaylistId === song.id) {
       togglePlayPause();
+    } else if (onPlayRequest) {
+      onPlayRequest(patchedSong);
     }
   };
 
   return (
     <div
-      className="group w-full rounded-lg cursor-pointer transition duration-200 hover:bg-black/40 pb-3"
+      className={`group w-full rounded-lg cursor-pointer transition duration-200 pb-3 ${
+        isActive ? "bg-black/40" : "hover:bg-black/40"
+      }`}
       onClick={() => {
         if (typeof onClickCard === "function") {
           onClickCard();
@@ -50,12 +53,14 @@ const ArtistCard = ({ song, onPlayRequest, onClickCard }) => {
         />
         <button
           onClick={handlePlayPauseClick}
-          className="absolute bottom-2 right-2 w-12 h-12 bg-[#1db954] rounded-full flex items-center justify-center opacity-0 singu group-hover:opacity-100 hover:scale-110 transition-all duration-200"
+          className={`absolute bottom-2 right-2 w-12 h-12 bg-[#1db954] rounded-full flex items-center justify-center hover:scale-110 transition-all duration-200 ${
+            isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
         >
           {isActive ? (
             <IoIosPause className="text-black text-3xl" />
           ) : (
-            <IoIosPlay className="text-black text-4xl pl-1" />
+            <IoIosPlay className="text-black text-3xl pl-1" />
           )}
         </button>
       </div>

@@ -6,8 +6,8 @@ import {
 
 const initialState = {
   user: {},
-  token: sessionStorage.getItem("token") || null, // Restore token if available
-  isAuthenticated: !!sessionStorage.getItem("token"), // Check authentication state
+  token: sessionStorage.getItem("token") || null,
+  isAuthenticated: !!sessionStorage.getItem("token"),
 };
 
 export const userReducer = (state = initialState, action) => {
